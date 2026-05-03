@@ -82,15 +82,8 @@ const DrumApp = {
         }
     },
 
-    // Load initial state from localStorage or URL
+    // Load initial state from URL
     loadInitialState: function() {
-        // Load saved groove if exists
-        const savedGroove = DrumUtils.storage.load('currentGroove');
-        if (savedGroove) {
-            Object.assign(GrooveEditor.currentGroove, savedGroove);
-        }
-
-        // Update UI to match groove data
         GrooveEditor.updateUI();
         GrooveEditor.render();
     },

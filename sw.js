@@ -1,4 +1,4 @@
-const CACHE_NAME = 'drum-editor-v4';
+const CACHE_NAME = 'drum-editor-v5';
 
 // All assets pre-cached on install so the app works fully offline.
 // Update CACHE_NAME above whenever you deploy new code to push fresh assets to users.

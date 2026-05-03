@@ -83,6 +83,7 @@ const DrumUtils = {
      */
     generateShareURL: function(grooveData) {
         const params = new URLSearchParams({
+            shared: '1',
             TimeSig: grooveData.timeSignature || '4/4',
             Div: grooveData.division || 16,
             Tempo: grooveData.tempo || 80,
@@ -104,6 +105,9 @@ const DrumUtils = {
      */
     parseGrooveFromURL: function() {
         const params = new URLSearchParams(window.location.search);
+        if (!params.get('shared')) {
+            return {};
+        }
         let measureText = [];
 
         if (params.get('MTXT')) {

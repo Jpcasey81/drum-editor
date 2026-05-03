@@ -314,8 +314,7 @@ const GrooveEditor = {
 
     // Update URL with current groove
     updateURL: function() {
-        const shareURL = DrumUtils.generateShareURL(this.currentGroove);
-        window.history.replaceState({}, document.title, shareURL);
+        window.history.replaceState({}, document.title, window.location.pathname);
     },
 
     // Download groove as MIDI
