@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Drum Editor App - Create and edit drum grooves easily">
+
+    <!-- PWA / home screen -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1e293b">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Drum Editor">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+
+    <title>Drum Editor</title>
+    <link rel="stylesheet" href="css/styles.css?v=20260502-1">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <h1>Drum Editor</h1>
+            </div>
+        </header>
+
+        <!-- Content Area -->
+        <div class="content-wrapper">
+            <!-- Editing Section -->
+            <div class="edit-section">
+                <div class="groove-info">
+                    <div id="notationView" class="notation-view"></div>
+                </div>
+
+                <!-- Sheet Music Display -->
+                <div class="sheet-music-container">
+                    <svg id="sheetMusic" class="sheet-music" width="800" height="400"></svg>
+                </div>
+
+                <div class="groove-meta-bar">
+                    <div class="form-group">
+                        <label for="titleInput">Title:</label>
+                        <input type="text" id="titleInput" placeholder="Enter groove title">
+                    </div>
+                    <div class="form-group">
+                        <label for="authorInput">Author:</label>
+                        <input type="text" id="authorInput" placeholder="Enter author name">
+                    </div>
+                    <div class="form-group">
+                        <label for="commentInput">Comment:</label>
+                        <input type="text" id="commentInput" placeholder="Add a comment">
+                    </div>
+                    <button id="clearBtn" class="btn btn-danger">Clear</button>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="action-buttons">
+                    <button id="saveFileBtn" class="btn btn-secondary">
+                        <span class="icon">💾</span>
+                        SAVE
+                    </button>
+                    <button id="openFileBtn" class="btn btn-secondary">
+                        <span class="icon">📂</span>
+                        OPEN
+                    </button>
+                    <button id="printBtn" class="btn btn-primary">
+                        <span class="icon">🖨</span>
+                        PRINT
+                    </button>
+                </div>
+            </div>
+
+            <!-- Playback Controls -->
+            <aside class="playback-controls">
+                <button id="playBtn" class="play-btn" title="Play/Pause">▶</button>
+                <div id="timeDisplay" class="time-display">0:00</div>
+
+                <div class="control-group">
+                    <label>BPM</label>
+                    <input type="number" id="bpmInput" value="80" min="40" max="300">
+                    <input type="range" id="bpmSlider" value="80" min="40" max="300">
+                </div>
+
+                <div class="control-group">
+                    <label>SWING</label>
+                    <div id="swingDisplay">0%</div>
+                    <input type="range" id="swingSlider" value="0" min="0" max="100">
+                </div>
+
+                <div class="control-group">
+                    <label>Time Signature</label>
+                    <select id="timeSignature">
+                        <option value="2/4">2/4</option>
+                        <option value="3/4">3/4</option>
+                        <option value="4/4" selected>4/4</option>
+                        <option value="5/4">5/4</option>
+                        <option value="6/8">6/8</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label>Division</label>
+                    <select id="division">
+                        <option value="8">1/8 Notes</option>
+                        <option value="16" selected>1/16 Notes</option>
+                        <option value="32">1/32 Notes</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label>Measures</label>
+                    <input type="number" id="measuresInput" value="1" min="1" max="32">
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <!-- Note Type Context Menu -->
+    <div id="noteContextMenu" class="note-context-menu hidden"></div>
+
+    <!-- External Libraries -->
+    <script src="lib/midi.js/lib/midi.min.js"></script>
+    <script src="lib/abc2svg/abc2svg-1.js"></script>
+    <script src="lib/abc2svg/perc-1.js"></script>
+    <script src="lib/jsmidgen/lib/jsmidgen.js"></script>
+
+    <!-- App Scripts -->
+    <script src="js/utils.js?v=20260502-4"></script>
+    <script src="js/notationRenderer.js?v=20260502-4"></script>
+    <script src="js/patternEditor.js?v=20260502-4"></script>
+    <script src="js/grooveEditor.js?v=20260502-4"></script>
+    <script src="js/app.js?v=20260502-4"></script>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js');
+        }
+    </script>
+</body>
+</html>

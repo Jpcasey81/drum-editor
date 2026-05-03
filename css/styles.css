@@ -1,0 +1,688 @@
+/* Reset and Base Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --primary-color: #FF6B35;
+    --secondary-color: #004E89;
+    --success-color: #2ECC71;
+    --danger-color: #E74C3C;
+    --dark-bg: #1a1a1a;
+    --light-bg: #f5f5f5;
+    --border-color: #ddd;
+    --text-color: #333;
+    --light-text: #666;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    background-color: var(--light-bg);
+    color: var(--text-color);
+    overflow: hidden;
+}
+
+/* Container and Layout */
+.container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh;
+    width: 100vw;
+}
+
+/* Header */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    background-color: var(--secondary-color);
+    color: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.logo {
+    height: 40px;
+    width: 40px;
+}
+
+.header h1 {
+    font-size: 24px;
+    font-weight: 600;
+}
+
+.header-right {
+    display: flex;
+    gap: 10px;
+}
+
+/* Mode Button */
+.mode-btn {
+    padding: 8px 16px;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background-color 0.3s;
+}
+
+.mode-btn:hover {
+    background-color: #E55A24;
+}
+
+/* Main Controls */
+.main-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    background-color: white;
+    border-bottom: 1px solid var(--border-color);
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.control-section {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.control-section label {
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.menu-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+/* Buttons */
+.btn {
+    padding: 8px 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.2s;
+    background-color: white;
+}
+
+.btn:hover {
+    background-color: var(--light-bg);
+    border-color: #999;
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+.btn-primary:hover {
+    background-color: #E55A24;
+    border-color: #E55A24;
+}
+
+.btn-secondary {
+    background-color: var(--secondary-color);
+    color: white;
+    border-color: var(--secondary-color);
+}
+
+.btn-secondary:hover {
+    background-color: #003D70;
+}
+
+.btn-small {
+    padding: 6px 12px;
+    font-size: 12px;
+}
+
+.btn-danger {
+    background-color: var(--danger-color);
+    color: white;
+    border-color: var(--danger-color);
+}
+
+.btn-danger:hover {
+    background-color: #C0392B;
+}
+
+.menu-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    padding: 10px 15px;
+    background-color: var(--light-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.menu-btn:hover {
+    background-color: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+.menu-btn .icon {
+    font-size: 18px;
+}
+
+/* Content Wrapper */
+.content-wrapper {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    gap: 20px;
+    padding: 20px;
+}
+
+/* Edit Section */
+.edit-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    overflow-y: auto;
+}
+
+.groove-info {
+    background-color: white;
+    padding: 12px;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.groove-meta-bar {
+    background-color: white;
+    padding: 14px 16px;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 16px;
+    align-items: center;
+}
+
+.form-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.form-group:last-child {
+    margin-bottom: 0;
+}
+
+.form-group label {
+    min-width: 80px;
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.form-group input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(255, 107, 53, 0.1);
+}
+
+/* Sheet Music */
+.sheet-music-container {
+    background-color: white;
+    padding: 12px;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    flex: 1;
+    overflow: auto;
+    display: flex;
+    justify-content: flex-start;
+    align-items: flex-start;
+}
+
+.measure-text-input-wrap {
+    width: 100%;
+    height: 100%;
+}
+
+.measure-text-input {
+    display: block;
+    width: 100%;
+    height: 30px;
+    padding: 4px 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 12px;
+    background-color: #fff;
+    color: var(--text-color);
+    text-align: center;
+}
+
+.measure-text-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(255, 107, 53, 0.12);
+}
+
+.sheet-music {
+    min-width: 100%;
+    min-height: 260px;
+    border: 1px solid var(--border-color);
+    background: linear-gradient(180deg, #ffffff 0%, #fcfcfc 100%);
+    -webkit-touch-callout: none;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.notation-view {
+    min-width: 100%;
+    min-height: 180px;
+    border: 1px solid var(--border-color);
+    background: linear-gradient(180deg, #ffffff 0%, #fcfcfc 100%);
+    padding: 10px 14px;
+}
+
+.notation-view svg {
+    display: block;
+    max-width: 100%;
+    height: auto;
+}
+
+.notation-error {
+    color: var(--danger-color);
+    white-space: pre-wrap;
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-size: 12px;
+}
+
+.hidden {
+    display: none !important;
+}
+
+#sheetMusic.is-readonly {
+    opacity: 0.8;
+}
+
+/* Action Buttons */
+.action-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.action-buttons .btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+    min-width: 150px;
+    justify-content: center;
+}
+
+.action-buttons .icon {
+    font-size: 16px;
+}
+
+/* Playback Controls Sidebar */
+.playback-controls {
+    width: 250px;
+    background-color: white;
+    padding: 20px;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    overflow-y: auto;
+}
+
+.play-btn {
+    padding: 15px;
+    font-size: 24px;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    font-weight: bold;
+}
+
+.play-btn:hover {
+    background-color: #E55A24;
+}
+
+.time-display {
+    text-align: center;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.control-group label {
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    color: var(--text-color);
+}
+
+.control-group input[type="number"],
+.control-group input[type="range"],
+.control-group select {
+    padding: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+.control-group input[type="number"],
+.control-group select {
+    padding: 8px 12px;
+}
+
+.control-group input[type="range"] {
+    cursor: pointer;
+    height: 6px;
+}
+
+.control-group input[type="range"]:focus,
+.control-group input[type="number"]:focus,
+.control-group select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+/* Modals */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    transition: opacity 0.2s;
+}
+
+.modal.hidden {
+    display: none;
+}
+
+.modal-content {
+    background-color: white;
+    padding: 30px;
+    border-radius: 8px;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.close-btn {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: none;
+    border: none;
+    font-size: 28px;
+    cursor: pointer;
+    color: var(--light-text);
+}
+
+.close-btn:hover {
+    color: var(--text-color);
+}
+
+.modal-content h2 {
+    margin-bottom: 20px;
+    color: var(--secondary-color);
+}
+
+.modal-content h3 {
+    margin-top: 15px;
+    margin-bottom: 10px;
+    color: var(--text-color);
+}
+
+.modal-content ul {
+    margin-left: 20px;
+    color: var(--light-text);
+}
+
+.modal-content li {
+    margin-bottom: 8px;
+}
+
+/* Responsive Design */
+
+/* Tablet / iPad: compact side-by-side layout */
+@media (max-width: 1280px) {
+    .header {
+        padding: 8px 14px;
+    }
+
+    .header h1 {
+        font-size: 18px;
+    }
+
+    .content-wrapper {
+        padding: 10px;
+        gap: 10px;
+    }
+
+    .edit-section {
+        gap: 8px;
+    }
+
+    .playback-controls {
+        width: 190px;
+        padding: 12px;
+        gap: 12px;
+    }
+
+    .play-btn {
+        padding: 10px;
+        font-size: 20px;
+    }
+
+    .time-display {
+        font-size: 15px;
+    }
+
+    .control-group {
+        gap: 5px;
+    }
+
+    .control-group input[type="number"],
+    .control-group input[type="range"],
+    .control-group select {
+        padding: 5px 8px;
+        font-size: 12px;
+    }
+
+    .notation-view {
+        min-height: 80px;
+        padding: 8px 10px;
+    }
+
+    .sheet-music {
+        min-height: 180px;
+    }
+
+    .groove-meta-bar {
+        padding: 8px 12px;
+        gap: 6px 12px;
+    }
+
+    .groove-meta-bar .form-group {
+        margin-bottom: 0;
+    }
+
+    .form-group label {
+        min-width: 60px;
+        font-size: 13px;
+    }
+
+    .form-group input {
+        padding: 5px 8px;
+        font-size: 13px;
+    }
+
+    .action-buttons .btn {
+        min-width: 100px;
+        padding: 6px 12px;
+        font-size: 12px;
+    }
+}
+
+/* Phone: stack controls below edit area */
+@media (max-width: 640px) {
+    .header {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .content-wrapper {
+        flex-direction: column;
+    }
+
+    .playback-controls {
+        width: 100%;
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .control-group {
+        flex: 1;
+        min-width: 130px;
+    }
+
+    .groove-meta-bar {
+        align-items: stretch;
+    }
+
+    .groove-meta-bar .form-group {
+        width: 100%;
+    }
+}
+
+/* Note Type Context Menu */
+.note-context-menu {
+    position: fixed;
+    background: white;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.16);
+    z-index: 2000;
+    min-width: 148px;
+    padding: 4px 0;
+    font-size: 13px;
+    user-select: none;
+}
+
+.note-context-title {
+    padding: 5px 14px 4px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #94a3b8;
+}
+
+.note-context-item {
+    display: block;
+    width: 100%;
+    padding: 7px 16px;
+    text-align: left;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 13px;
+    color: #1e293b;
+    transition: background 0.1s;
+}
+
+.note-context-item:hover {
+    background: #f1f5f9;
+}
+
+.note-context-item.is-current {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.note-context-item.is-current::after {
+    content: ' ✓';
+}
+
+.note-context-remove {
+    color: var(--danger-color) !important;
+}
+
+.note-context-sep {
+    border-top: 1px solid #e2e8f0;
+    margin: 3px 0;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--light-bg);
+}
+
+::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #999;
+}

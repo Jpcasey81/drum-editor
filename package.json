@@ -1,0 +1,10 @@
+{
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "abc2svg": "^1.22.1",
+    "jsmidgen": "^0.1.8",
+    "midi.js": "^0.3.1"
+  }
+}
