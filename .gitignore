@@ -1,4 +1,19 @@
-# Audio samples - large binary files, keep local only
+# Ignore all audio samples by default - keep only what the program uses
+samples/**/*.wav
+samples/**/*.flac
+samples/**/*.mp3
+
+# Samples actively used by the program (sampleManifest in app.js / sw.js precache)
+!samples/Piccolo Cross Stick.wav
+!samples/rock-kit/Rock-Kit-Crash-1-1.wav
+!samples/rock-kit/Rock-Kit-Floor-1.wav
+!samples/rock-kit/Rock-Kit-HiHat-Open.wav
+!samples/rock-kit/Rock-Kit-HiHat-Pedal.wav
+!samples/rock-kit/Rock-Kit-HiHat-Tip-1.wav
+!samples/rock-kit/Rock-Kit-Kick-ff-1.wav
+!samples/rock-kit/Rock-Rack-1.wav
+!samples/rock-kit/Rock-Rack-2.wav
+!samples/rock-kit/Rock-Snare-ff-2.wav
 
 # OS files
 .DS_Store
