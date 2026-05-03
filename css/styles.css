@@ -662,6 +662,17 @@ body {
         white-space: nowrap;
         min-width: 28px;
     }
+
+    .sheet-music-container {
+        align-items: stretch;
+    }
+
+    .sheet-music {
+        height: 100%;
+        min-height: unset;
+        width: auto;
+        min-width: unset;
+    }
 }
 
 /* Note Type Context Menu */

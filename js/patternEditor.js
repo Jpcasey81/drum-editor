@@ -131,14 +131,15 @@ const GroovePatternEditor = {
 
     // Draw the interactive groove grid
     drawGrooveGrid: function(wrapper, groove) {
+        const isTabletPortrait = window.matchMedia('(min-width: 641px) and (max-width: 1100px) and (orientation: portrait)').matches;
         const margin = 46;
-        const trackHeight = 42;
-        const trackGap = 10;
-        const cellWidth = 14;
-        const cellHeight = 28;
-        const cellGap = 2;
-        const beatGap = 8;
-        const labelWidth = 72;
+        const trackHeight = isTabletPortrait ? 54 : 42;
+        const trackGap = isTabletPortrait ? 12 : 10;
+        const cellWidth = isTabletPortrait ? 22 : 14;
+        const cellHeight = isTabletPortrait ? 38 : 28;
+        const cellGap = isTabletPortrait ? 3 : 2;
+        const beatGap = isTabletPortrait ? 12 : 8;
+        const labelWidth = isTabletPortrait ? 80 : 72;
         const gridStartX = labelWidth + 14;
         const stepsPerMeasure = DrumUtils.calculateStepsPerMeasure(groove.timeSignature, groove.division);
         const beatsPerMeasure = this.getGridBeatCount(groove.timeSignature);
@@ -177,7 +178,7 @@ const GroovePatternEditor = {
             labelBg.setAttribute('x', '5');
             labelBg.setAttribute('y', drum.y);
             labelBg.setAttribute('width', String(labelWidth));
-            labelBg.setAttribute('height', '36');
+            labelBg.setAttribute('height', String(cellHeight + 8));
             labelBg.setAttribute('fill', drum.color);
             labelBg.setAttribute('opacity', '0.12');
             labelBg.setAttribute('rx', '4');
@@ -186,8 +187,8 @@ const GroovePatternEditor = {
             // Label text
             const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
             label.setAttribute('x', '12');
-            label.setAttribute('y', drum.y + 23);
-            label.setAttribute('font-size', '12');
+            label.setAttribute('y', drum.y + (isTabletPortrait ? 28 : 23));
+            label.setAttribute('font-size', isTabletPortrait ? '14' : '12');
             label.setAttribute('font-weight', 'bold');
             label.setAttribute('fill', drum.color);
             label.setAttribute('class', 'drum-label');
@@ -198,9 +199,9 @@ const GroovePatternEditor = {
             labelGroup.appendChild(label);
 
             const labelSubtext = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            labelSubtext.setAttribute('x', '30');
-            labelSubtext.setAttribute('y', drum.y + 23);
-            labelSubtext.setAttribute('font-size', '10');
+            labelSubtext.setAttribute('x', isTabletPortrait ? '34' : '30');
+            labelSubtext.setAttribute('y', drum.y + (isTabletPortrait ? 28 : 23));
+            labelSubtext.setAttribute('font-size', isTabletPortrait ? '12' : '10');
             labelSubtext.setAttribute('fill', '#475569');
             labelSubtext.textContent = drum.name;
             labelGroup.appendChild(labelSubtext);
@@ -210,7 +211,7 @@ const GroovePatternEditor = {
             // Draw groove hits for this drum
             hits.forEach((hit, index) => {
                 const cellX = this.getCellX(index, gridStartX, cellWidth, cellGap, beatGap, stepsPerBeat);
-                const cellY = drum.y + 5;
+                const cellY = drum.y + (isTabletPortrait ? 8 : 5);
 
                 // Create clickable cell
                 const cellGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
@@ -411,21 +412,22 @@ const GroovePatternEditor = {
     // Draw the correct symbol for a hit based on its character type
     drawHitSymbol: function(group, cx, cellY, cellHeight, hitChar, color) {
         const midY = cellY + cellHeight / 2;
+        const s = cellHeight / 28;
 
         switch (hitChar) {
             case 'O': case 'X': {
                 // Accent: filled circle shifted slightly down + small caret above
                 const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-                const tx = cx, ty = cellY + 5;
-                poly.setAttribute('points', `${tx},${ty} ${tx - 3.5},${ty + 5} ${tx + 3.5},${ty + 5}`);
+                const tx = cx, ty = cellY + 5 * s;
+                poly.setAttribute('points', `${tx},${ty} ${tx - 3.5 * s},${ty + 5 * s} ${tx + 3.5 * s},${ty + 5 * s}`);
                 poly.setAttribute('fill', color);
                 poly.setAttribute('class', 'drum-hit');
                 group.appendChild(poly);
 
                 const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
                 circle.setAttribute('cx', cx);
-                circle.setAttribute('cy', midY + 3);
-                circle.setAttribute('r', '5');
+                circle.setAttribute('cy', midY + 3 * s);
+                circle.setAttribute('r', String(5 * s));
                 circle.setAttribute('fill', color);
                 circle.setAttribute('class', 'drum-hit');
                 group.appendChild(circle);
@@ -436,7 +438,7 @@ const GroovePatternEditor = {
                 const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
                 circle.setAttribute('cx', cx);
                 circle.setAttribute('cy', midY);
-                circle.setAttribute('r', '4');
+                circle.setAttribute('r', String(4 * s));
                 circle.setAttribute('fill', 'none');
                 circle.setAttribute('stroke', color);
                 circle.setAttribute('stroke-width', '1.5');
@@ -446,7 +448,7 @@ const GroovePatternEditor = {
             }
             case 'r': {
                 // Rim click: X mark
-                const d = 4.5;
+                const d = 4.5 * s;
                 const makeRimLine = (x1, y1, x2, y2) => {
                     const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
                     line.setAttribute('x1', x1); line.setAttribute('y1', y1);
@@ -464,18 +466,18 @@ const GroovePatternEditor = {
             case 'f': {
                 // Flam: small grace note (upper) + main note (lower)
                 const grace = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-                grace.setAttribute('cx', cx - 2);
-                grace.setAttribute('cy', cellY + 9);
-                grace.setAttribute('r', '2.5');
+                grace.setAttribute('cx', cx - 2 * s);
+                grace.setAttribute('cy', cellY + 9 * s);
+                grace.setAttribute('r', String(2.5 * s));
                 grace.setAttribute('fill', color);
                 grace.setAttribute('opacity', '0.65');
                 grace.setAttribute('class', 'drum-hit');
                 group.appendChild(grace);
 
                 const main = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-                main.setAttribute('cx', cx + 1);
-                main.setAttribute('cy', midY + 4);
-                main.setAttribute('r', '4');
+                main.setAttribute('cx', cx + 1 * s);
+                main.setAttribute('cy', midY + 4 * s);
+                main.setAttribute('r', String(4 * s));
                 main.setAttribute('fill', color);
                 main.setAttribute('class', 'drum-hit');
                 group.appendChild(main);
@@ -485,16 +487,16 @@ const GroovePatternEditor = {
                 // Open hi-hat: x mark (lower) + small hollow circle above
                 const openCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
                 openCircle.setAttribute('cx', cx);
-                openCircle.setAttribute('cy', cellY + 6);
-                openCircle.setAttribute('r', '3');
+                openCircle.setAttribute('cy', cellY + 6 * s);
+                openCircle.setAttribute('r', String(3 * s));
                 openCircle.setAttribute('fill', 'none');
                 openCircle.setAttribute('stroke', color);
                 openCircle.setAttribute('stroke-width', '1.5');
                 openCircle.setAttribute('class', 'drum-hit');
                 group.appendChild(openCircle);
 
-                const xd = 4;
-                const xy = midY + 2;
+                const xd = 4 * s;
+                const xy = midY + 2 * s;
                 const makeOpenXLine = (x1, y1, x2, y2) => {
                     const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
                     line.setAttribute('x1', x1); line.setAttribute('y1', y1);
@@ -511,7 +513,7 @@ const GroovePatternEditor = {
             }
             case 'p': {
                 // Hi-hat foot: hollow diamond
-                const d = 5;
+                const d = 5 * s;
                 const diamond = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
                 diamond.setAttribute('points', `${cx},${midY - d} ${cx + d},${midY} ${cx},${midY + d} ${cx - d},${midY}`);
                 diamond.setAttribute('fill', 'none');
@@ -525,14 +527,14 @@ const GroovePatternEditor = {
                 // Kick + hi-hat foot: filled circle (kick) with small diamond above
                 const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
                 circle.setAttribute('cx', cx);
-                circle.setAttribute('cy', midY + 3);
-                circle.setAttribute('r', '4');
+                circle.setAttribute('cy', midY + 3 * s);
+                circle.setAttribute('r', String(4 * s));
                 circle.setAttribute('fill', color);
                 circle.setAttribute('class', 'drum-hit');
                 group.appendChild(circle);
 
-                const d = 3.5;
-                const dcy = midY - 8;
+                const d = 3.5 * s;
+                const dcy = midY - 8 * s;
                 const diamond = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
                 diamond.setAttribute('points', `${cx},${dcy - d} ${cx + d},${dcy} ${cx},${dcy + d} ${cx - d},${dcy}`);
                 diamond.setAttribute('fill', color);
@@ -545,7 +547,7 @@ const GroovePatternEditor = {
                 const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
                 circle.setAttribute('cx', cx);
                 circle.setAttribute('cy', midY);
-                circle.setAttribute('r', '4.5');
+                circle.setAttribute('r', String(4.5 * s));
                 circle.setAttribute('fill', color);
                 circle.setAttribute('class', 'drum-hit');
                 group.appendChild(circle);
