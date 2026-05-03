@@ -15,7 +15,7 @@
     <link rel="apple-touch-icon" href="icons/icon-192.png">
 
     <title>Drum Editor</title>
-    <link rel="stylesheet" href="css/styles.css?v=20260503-1">
+    <link rel="stylesheet" href="css/styles.css?v=20260503-3">
 </head>
 <body>
     <div class="container">
@@ -84,12 +84,6 @@
                 </div>
 
                 <div class="control-group">
-                    <label>SWING</label>
-                    <div id="swingDisplay">0%</div>
-                    <input type="range" id="swingSlider" value="0" min="0" max="100">
-                </div>
-
-                <div class="control-group">
                     <label>Time Signature</label>
                     <select id="timeSignature">
                         <option value="2/4">2/4</option>
@@ -111,7 +105,11 @@
 
                 <div class="control-group">
                     <label>Measures</label>
-                    <input type="number" id="measuresInput" value="1" min="1" max="32">
+                    <div class="number-stepper">
+                        <button id="measuresDecBtn" class="stepper-btn" aria-label="Decrease measures">−</button>
+                        <input type="number" id="measuresInput" value="1" min="1" max="32">
+                        <button id="measuresIncBtn" class="stepper-btn" aria-label="Increase measures">+</button>
+                    </div>
                 </div>
             </aside>
         </div>
@@ -130,7 +128,7 @@
     <script src="js/utils.js?v=20260502-4"></script>
     <script src="js/notationRenderer.js?v=20260502-4"></script>
     <script src="js/patternEditor.js?v=20260503-2"></script>
-    <script src="js/grooveEditor.js?v=20260502-4"></script>
+    <script src="js/grooveEditor.js?v=20260503-3"></script>
     <script src="js/app.js?v=20260502-4"></script>
 
     <script>

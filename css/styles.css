@@ -269,7 +269,7 @@ body {
     overflow: auto;
     display: flex;
     justify-content: flex-start;
-    align-items: flex-start;
+    align-items: stretch;
 }
 
 .measure-text-input-wrap {
@@ -298,7 +298,7 @@ body {
 
 .sheet-music {
     min-width: 100%;
-    min-height: 260px;
+    height: 100%;
     border: 1px solid var(--border-color);
     background: linear-gradient(180deg, #ffffff 0%, #fcfcfc 100%);
     -webkit-touch-callout: none;
@@ -308,7 +308,7 @@ body {
 
 .notation-view {
     min-width: 100%;
-    min-height: 180px;
+    min-height: 40px;
     border: 1px solid var(--border-color);
     background: linear-gradient(180deg, #ffffff 0%, #fcfcfc 100%);
     padding: 10px 14px;
@@ -422,6 +422,40 @@ body {
 .control-group input[type="range"] {
     cursor: pointer;
     height: 6px;
+}
+
+.number-stepper {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.number-stepper input[type="number"] {
+    width: 48px;
+    text-align: center;
+}
+
+.stepper-btn {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: var(--light-bg);
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.15s;
+    flex-shrink: 0;
+}
+
+.stepper-btn:hover {
+    background-color: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
 }
 
 .control-group input[type="range"]:focus,
@@ -544,12 +578,7 @@ body {
     }
 
     .notation-view {
-        min-height: 80px;
         padding: 8px 10px;
-    }
-
-    .sheet-music {
-        min-height: 180px;
     }
 
     .groove-meta-bar {
@@ -661,17 +690,6 @@ body {
         font-size: 12px;
         white-space: nowrap;
         min-width: 28px;
-    }
-
-    .sheet-music-container {
-        align-items: stretch;
-    }
-
-    .sheet-music {
-        height: 100%;
-        min-height: unset;
-        width: auto;
-        min-width: unset;
     }
 }
 

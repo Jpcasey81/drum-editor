@@ -176,18 +176,6 @@ const GrooveEditor = {
             });
         }
 
-        // Swing controls
-        const swingSlider = document.getElementById('swingSlider');
-        const swingDisplay = document.getElementById('swingDisplay');
-
-        if (swingSlider && swingDisplay) {
-            swingSlider.addEventListener('input', (e) => {
-                const value = parseInt(e.target.value);
-                this.currentGroove.swing = value;
-                swingDisplay.textContent = value + '%';
-            });
-        }
-
         // Time Signature
         const timeSignatureSelect = document.getElementById('timeSignature');
         if (timeSignatureSelect) {
@@ -230,6 +218,20 @@ const GrooveEditor = {
 
             measuresInput.addEventListener('input', handleMeasureUpdate);
             measuresInput.addEventListener('change', handleMeasureUpdate);
+
+            const stepMeasures = (delta) => {
+                const value = Math.max(1, Math.min(32, (parseInt(measuresInput.value) || 1) + delta));
+                measuresInput.value = value;
+                this.resizeMeasureCount(value);
+                this.updateUI();
+                this.render();
+                this.updateURL();
+            };
+
+            const decBtn = document.getElementById('measuresDecBtn');
+            const incBtn = document.getElementById('measuresIncBtn');
+            if (decBtn) decBtn.addEventListener('click', () => stepMeasures(-1));
+            if (incBtn) incBtn.addEventListener('click', () => stepMeasures(1));
         }
 
         // Action buttons
@@ -282,8 +284,6 @@ const GrooveEditor = {
         const commentInput = document.getElementById('commentInput');
         const bpmInput = document.getElementById('bpmInput');
         const bpmSlider = document.getElementById('bpmSlider');
-        const swingSlider = document.getElementById('swingSlider');
-        const swingDisplay = document.getElementById('swingDisplay');
         const timeSignatureSelect = document.getElementById('timeSignature');
         const divisionSelect = document.getElementById('division');
         const measuresInput = document.getElementById('measuresInput');
@@ -293,8 +293,6 @@ const GrooveEditor = {
         if (commentInput) commentInput.value = this.currentGroove.comment;
         if (bpmInput) bpmInput.value = this.currentGroove.tempo;
         if (bpmSlider) bpmSlider.value = this.currentGroove.tempo;
-        if (swingSlider) swingSlider.value = this.currentGroove.swing;
-        if (swingDisplay) swingDisplay.textContent = this.currentGroove.swing + '%';
         if (timeSignatureSelect) timeSignatureSelect.value = this.currentGroove.timeSignature;
         if (divisionSelect) divisionSelect.value = String(this.currentGroove.division);
         if (measuresInput) measuresInput.value = this.currentGroove.measures;
@@ -407,20 +405,20 @@ const GrooveEditor = {
         }
 
         .print-header {
-            margin-bottom: 0.3in;
+            margin-bottom: 0.12in;
             border-bottom: 1px solid #d1d5db;
-            padding-bottom: 0.18in;
+            padding-bottom: 0.1in;
         }
 
         .print-title {
-            font-size: 22pt;
+            font-size: 14pt;
             font-weight: 700;
-            margin-bottom: 0.08in;
+            margin-bottom: 0.04in;
         }
 
         .print-meta-line {
             font-size: 11pt;
-            margin-bottom: 0.04in;
+            margin-bottom: 0.03in;
         }
 
         .print-settings {
