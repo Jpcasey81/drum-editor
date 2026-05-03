@@ -1,5 +1,4 @@
 # Audio samples - large binary files, keep local only
-samples/
 
 # OS files
 .DS_Store
