@@ -16,6 +16,7 @@ const GrooveEditor = {
         measureText: [''],
         crash: '',
         hihat: '',
+        ride: '',
         hitom: '',
         midtom: '',
         snare: '',

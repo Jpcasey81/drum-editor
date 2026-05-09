@@ -6,6 +6,7 @@ const DrumNotationRenderer = {
     lanePitches: {
         crash: "a",
         hihat: "g",
+        ride:  "a",
         hitom: "e",
         midtom: "B",
         snare: "c",

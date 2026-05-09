@@ -3,7 +3,7 @@
  */
 
 const DrumUtils = {
-    drumLaneKeys: ['crash', 'hihat', 'hitom', 'midtom', 'snare', 'lowtom', 'kick'],
+    drumLaneKeys: ['crash', 'hihat', 'ride', 'hitom', 'midtom', 'snare', 'lowtom', 'kick'],
 
     /**
      * Format time in seconds to MM:SS format

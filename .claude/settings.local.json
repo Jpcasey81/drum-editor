@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\jpcas\\\\OneDrive\\\\1 - Projects\\\\Drum editor app\" -Recurse -Force)",
+      "Bash(Select-Object FullName)"
+    ]
+  }
+}

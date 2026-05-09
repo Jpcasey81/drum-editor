@@ -23,6 +23,7 @@ const DrumApp = {
     sampleManifest: {
         crash: 'samples/rock-kit/Rock-Kit-Crash-1-1.wav',
         hihat: 'samples/rock-kit/Rock-Kit-HiHat-Tip-1.wav',
+        ride: 'samples/rock-kit/Rock-Ride-Tip.wav',
         hihat_pedal: 'samples/rock-kit/Rock-Kit-HiHat-Pedal.wav',
         open_hihat: 'samples/rock-kit/Rock-Kit-HiHat-Open.wav',
         rim_click: 'samples/Piccolo Cross Stick.wav',
@@ -192,6 +193,7 @@ const DrumApp = {
             stepsPerMeasure: DrumUtils.calculateStepsPerMeasure(groove.timeSignature, groove.division),
             crash: DrumUtils.grooveToArray(groove.crash),
             hihat: DrumUtils.grooveToArray(groove.hihat),
+            ride: DrumUtils.grooveToArray(groove.ride),
             hitom: DrumUtils.grooveToArray(groove.hitom),
             midtom: DrumUtils.grooveToArray(groove.midtom),
             snare: DrumUtils.grooveToArray(groove.snare),
@@ -263,6 +265,7 @@ const DrumApp = {
 
         this.scheduleDrumHit('crash', groove.crash[stepIndex], stepTime);
         this.scheduleDrumHit('hihat', groove.hihat[stepIndex], stepTime);
+        this.scheduleDrumHit('ride', groove.ride[stepIndex], stepTime);
         this.scheduleDrumHit('hitom', groove.hitom[stepIndex], stepTime);
         this.scheduleDrumHit('midtom', groove.midtom[stepIndex], stepTime);
         this.scheduleDrumHit('snare', groove.snare[stepIndex], stepTime);
@@ -386,6 +389,7 @@ const DrumApp = {
         switch (drumType) {
             case 'crash':  return hit === 'X' ? 1.3  : 1.0;
             case 'hihat':  return hit === 'X' ? 1.15 : 0.85;
+            case 'ride':   return hit === 'X' ? 1.15 : 0.9;
             case 'snare':  return hit === 'O' ? 1.2  : 0.9;
             case 'kick':   return hit === 'O' ? 1.15 : 1.0;
             case 'hitom':  return hit === 'O' ? 1.2  : 0.95;
@@ -599,6 +603,7 @@ const DrumApp = {
         const playbackRate = {
             crash: 1.0,
             hihat: 1.0,
+            ride: 1.0,
             hihat_pedal: 1.0,
             open_hihat: 1.0,
             rim_click: 1.0,
@@ -617,6 +622,7 @@ const DrumApp = {
         const frequencies = {
             crash: 6500,
             hihat: 7800,
+            ride: 7000,
             hihat_pedal: 7000,
             open_hihat: 6500,
             rim_click: 1800,
@@ -634,6 +640,7 @@ const DrumApp = {
         const gains = {
             crash: 2,
             hihat: 3,
+            ride: 2.5,
             hihat_pedal: 2.5,
             open_hihat: 3.0,
             rim_click: 1.5,
