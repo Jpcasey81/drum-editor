@@ -11,6 +11,7 @@ samples/**/*.mp3
 !samples/rock-kit/Rock-Kit-HiHat-Pedal.wav
 !samples/rock-kit/Rock-Kit-HiHat-Tip-1.wav
 !samples/rock-kit/Rock-Kit-Kick-ff-1.wav
+!samples/rock-kit/Rock-Ride-Tip.wav
 !samples/rock-kit/Rock-Rack-1.wav
 !samples/rock-kit/Rock-Rack-2.wav
 !samples/rock-kit/Rock-Snare-ff-2.wav
