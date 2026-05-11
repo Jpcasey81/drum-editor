@@ -11,10 +11,12 @@
     --success-color: #2ECC71;
     --danger-color: #E74C3C;
     --dark-bg: #1a1a1a;
+    --surface-bg: #252525;
+    --surface-hover: #2e2e2e;
     --light-bg: #f5f5f5;
-    --border-color: #ddd;
-    --text-color: #333;
-    --light-text: #666;
+    --border-color: #444;
+    --text-color: #e0e0e0;
+    --light-text: #aaa;
 }
 
 html, body {
@@ -24,7 +26,7 @@ html, body {
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-    background-color: var(--light-bg);
+    background-color: var(--dark-bg);
     color: var(--text-color);
     overflow: hidden;
 }
@@ -123,12 +125,13 @@ body {
     font-size: 13px;
     font-weight: 500;
     transition: all 0.2s;
-    background-color: white;
+    background-color: var(--surface-bg);
+    color: var(--text-color);
 }
 
 .btn:hover {
-    background-color: var(--light-bg);
-    border-color: #999;
+    background-color: var(--surface-hover);
+    border-color: #666;
 }
 
 .btn-primary {
@@ -211,22 +214,12 @@ body {
 }
 
 .groove-info {
-    background-color: white;
+    background-color: var(--surface-bg);
     padding: 12px;
     border-radius: 4px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
-.groove-meta-bar {
-    background-color: white;
-    padding: 14px 16px;
-    border-radius: 4px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px 16px;
-    align-items: center;
-}
 
 .form-group {
     display: flex;
@@ -269,7 +262,7 @@ body {
     overflow: auto;
     display: flex;
     justify-content: flex-start;
-    align-items: stretch;
+    align-items: flex-start;
 }
 
 .measure-text-input-wrap {
@@ -297,8 +290,7 @@ body {
 }
 
 .sheet-music {
-    min-width: 100%;
-    height: 100%;
+    flex-shrink: 0;
     border: 1px solid #333;
     background: #1a1a1a;
     -webkit-touch-callout: none;
@@ -308,10 +300,11 @@ body {
 
 .notation-view {
     min-width: 100%;
-    min-height: 40px;
     border: 1px solid var(--border-color);
     background: linear-gradient(180deg, #ffffff 0%, #fcfcfc 100%);
     padding: 10px 14px;
+    overflow-y: auto;
+    color: #000;
 }
 
 .notation-view svg {
@@ -348,7 +341,7 @@ body {
     align-items: center;
     gap: 6px;
     flex: 1;
-    min-width: 150px;
+    min-width: 80px;
     justify-content: center;
 }
 
@@ -359,10 +352,10 @@ body {
 /* Playback Controls Sidebar */
 .playback-controls {
     width: 250px;
-    background-color: white;
+    background-color: var(--surface-bg);
     padding: 20px;
     border-radius: 4px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
     display: flex;
     flex-direction: column;
     gap: 20px;
@@ -412,6 +405,8 @@ body {
     border: 1px solid var(--border-color);
     border-radius: 4px;
     font-size: 13px;
+    background-color: var(--dark-bg);
+    color: var(--text-color);
 }
 
 .control-group input[type="number"],
@@ -441,7 +436,8 @@ body {
     padding: 0;
     border: 1px solid var(--border-color);
     border-radius: 4px;
-    background: var(--light-bg);
+    background: var(--dark-bg);
+    color: var(--text-color);
     font-size: 16px;
     line-height: 1;
     cursor: pointer;
@@ -581,27 +577,8 @@ body {
         padding: 8px 10px;
     }
 
-    .groove-meta-bar {
-        padding: 8px 12px;
-        gap: 6px 12px;
-    }
-
-    .groove-meta-bar .form-group {
-        margin-bottom: 0;
-    }
-
-    .form-group label {
-        min-width: 60px;
-        font-size: 13px;
-    }
-
-    .form-group input {
-        padding: 5px 8px;
-        font-size: 13px;
-    }
-
     .action-buttons .btn {
-        min-width: 100px;
+        min-width: 70px;
         padding: 6px 12px;
         font-size: 12px;
     }
@@ -630,13 +607,6 @@ body {
         min-width: 130px;
     }
 
-    .groove-meta-bar {
-        align-items: stretch;
-    }
-
-    .groove-meta-bar .form-group {
-        width: 100%;
-    }
 }
 
 /* iPad portrait: playback controls become a top bar above the grid */

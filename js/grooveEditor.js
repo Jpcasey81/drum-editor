@@ -77,45 +77,65 @@ const GrooveEditor = {
         this.currentGroove.measureText = DrumUtils.normalizeMeasureText(this.currentGroove.measureText, nextSettings.measures);
     },
 
-    // Resize only the measure count while preserving existing measures in place
-    resizeMeasureCount: function(nextMeasureCount) {
-        const division = this.currentGroove.division;
-        const timeSignature = this.currentGroove.timeSignature;
+    // Insert a blank measure after the given index
+    addMeasure: function(afterIndex) {
+        const { division, timeSignature } = this.currentGroove;
         const stepsPerMeasure = DrumUtils.calculateStepsPerMeasure(timeSignature, division);
+        const currentMeasures = this.currentGroove.measures;
+        const newMeasures = currentMeasures + 1;
 
         DrumUtils.drumLaneKeys.forEach((drumKey) => {
-            const normalizedPattern = DrumUtils.normalizeGroovePattern(
-                this.currentGroove[drumKey],
-                this.currentGroove.measures,
-                division,
-                timeSignature,
-                '-'
+            const normalized = DrumUtils.normalizeGroovePattern(
+                this.currentGroove[drumKey], currentMeasures, division, timeSignature, '-'
             );
-            const hits = DrumUtils.grooveToArray(normalizedPattern);
-            const resizedHits = [];
-
-            for (let measureIndex = 0; measureIndex < nextMeasureCount; measureIndex++) {
-                const start = measureIndex * stepsPerMeasure;
-                const end = start + stepsPerMeasure;
-                const sourceMeasure = hits.slice(start, end);
-
-                if (sourceMeasure.length === stepsPerMeasure) {
-                    resizedHits.push(...sourceMeasure);
-                } else {
-                    resizedHits.push(...Array(stepsPerMeasure).fill('-'));
-                }
+            const hits = DrumUtils.grooveToArray(normalized);
+            const chunks = [];
+            for (let i = 0; i < currentMeasures; i++) {
+                chunks.push(hits.slice(i * stepsPerMeasure, (i + 1) * stepsPerMeasure));
             }
-
+            chunks.splice(afterIndex + 1, 0, Array(stepsPerMeasure).fill('-'));
             this.currentGroove[drumKey] = DrumUtils.arrayToGroove(
-                resizedHits,
-                nextMeasureCount,
-                division,
-                timeSignature
+                chunks.flat(), newMeasures, division, timeSignature
             );
         });
 
-        this.currentGroove.measures = nextMeasureCount;
-        this.currentGroove.measureText = DrumUtils.normalizeMeasureText(this.currentGroove.measureText, nextMeasureCount);
+        const measureText = DrumUtils.normalizeMeasureText(this.currentGroove.measureText, currentMeasures);
+        measureText.splice(afterIndex + 1, 0, '');
+        this.currentGroove.measureText = measureText;
+        this.currentGroove.measures = newMeasures;
+        this.render();
+        this.updateURL();
+    },
+
+    // Delete the measure at the given index (minimum 1 measure)
+    deleteMeasure: function(index) {
+        if (this.currentGroove.measures <= 1) return;
+        const { division, timeSignature } = this.currentGroove;
+        const stepsPerMeasure = DrumUtils.calculateStepsPerMeasure(timeSignature, division);
+        const currentMeasures = this.currentGroove.measures;
+        const newMeasures = currentMeasures - 1;
+
+        DrumUtils.drumLaneKeys.forEach((drumKey) => {
+            const normalized = DrumUtils.normalizeGroovePattern(
+                this.currentGroove[drumKey], currentMeasures, division, timeSignature, '-'
+            );
+            const hits = DrumUtils.grooveToArray(normalized);
+            const chunks = [];
+            for (let i = 0; i < currentMeasures; i++) {
+                chunks.push(hits.slice(i * stepsPerMeasure, (i + 1) * stepsPerMeasure));
+            }
+            chunks.splice(index, 1);
+            this.currentGroove[drumKey] = DrumUtils.arrayToGroove(
+                chunks.flat(), newMeasures, division, timeSignature
+            );
+        });
+
+        const measureText = DrumUtils.normalizeMeasureText(this.currentGroove.measureText, currentMeasures);
+        measureText.splice(index, 1);
+        this.currentGroove.measureText = measureText;
+        this.currentGroove.measures = newMeasures;
+        this.render();
+        this.updateURL();
     },
 
     // Update text attached to a specific measure without re-rendering the editor inputs
@@ -205,36 +225,6 @@ const GrooveEditor = {
             });
         }
 
-        // Measures
-        const measuresInput = document.getElementById('measuresInput');
-        if (measuresInput) {
-            const handleMeasureUpdate = (e) => {
-                const value = Math.max(1, Math.min(32, parseInt(e.target.value) || 1));
-                measuresInput.value = value;
-                this.resizeMeasureCount(value);
-                this.updateUI();
-                this.render();
-                this.updateURL();
-            };
-
-            measuresInput.addEventListener('input', handleMeasureUpdate);
-            measuresInput.addEventListener('change', handleMeasureUpdate);
-
-            const stepMeasures = (delta) => {
-                const value = Math.max(1, Math.min(32, (parseInt(measuresInput.value) || 1) + delta));
-                measuresInput.value = value;
-                this.resizeMeasureCount(value);
-                this.updateUI();
-                this.render();
-                this.updateURL();
-            };
-
-            const decBtn = document.getElementById('measuresDecBtn');
-            const incBtn = document.getElementById('measuresIncBtn');
-            if (decBtn) decBtn.addEventListener('click', () => stepMeasures(-1));
-            if (incBtn) incBtn.addEventListener('click', () => stepMeasures(1));
-        }
-
         // Action buttons
         const downloadBtn = document.getElementById('downloadBtn');
         const printBtn = document.getElementById('printBtn');
@@ -265,6 +255,7 @@ const GrooveEditor = {
                 measureText: [''],
                 crash: '',
                 hihat: '',
+                ride: '',
                 hitom: '',
                 midtom: '',
                 snare: '',
@@ -287,7 +278,6 @@ const GrooveEditor = {
         const bpmSlider = document.getElementById('bpmSlider');
         const timeSignatureSelect = document.getElementById('timeSignature');
         const divisionSelect = document.getElementById('division');
-        const measuresInput = document.getElementById('measuresInput');
 
         if (titleInput) titleInput.value = this.currentGroove.title;
         if (authorInput) authorInput.value = this.currentGroove.author;
@@ -296,7 +286,6 @@ const GrooveEditor = {
         if (bpmSlider) bpmSlider.value = this.currentGroove.tempo;
         if (timeSignatureSelect) timeSignatureSelect.value = this.currentGroove.timeSignature;
         if (divisionSelect) divisionSelect.value = String(this.currentGroove.division);
-        if (measuresInput) measuresInput.value = this.currentGroove.measures;
     },
 
     // Render the groove (update sheet music display)
@@ -543,14 +532,14 @@ const GrooveEditor = {
             .replace(/[^a-z0-9\-_ ]/gi, '')
             .trim()
             .replace(/\s+/g, '-') || 'untitled-groove';
-        DrumUtils.downloadFile(safeName + '.drumgroove', json, 'application/json');
+        DrumUtils.downloadFile(safeName + '-groove.txt', json, 'application/json');
     },
 
     // Open a .drumgroove file and load it into the editor
     openFromFile: function() {
         const input = document.createElement('input');
         input.type = 'file';
-        input.accept = '.drumgroove,application/json';
+        input.accept = '.txt,.drumgroove,application/json';
         input.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file) return;
@@ -582,6 +571,7 @@ const GrooveEditor = {
             measureText: Array.isArray(data.measureText) ? data.measureText : [''],
             crash: data.crash || '',
             hihat: data.hihat || '',
+            ride: data.ride || '',
             hitom: data.hitom || '',
             midtom: data.midtom || '',
             snare: data.snare || '',

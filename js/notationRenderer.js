@@ -80,9 +80,27 @@ const DrumNotationRenderer = {
             container.innerHTML = errorText
                 ? `<pre class="notation-error">${errorText}</pre>${output}`
                 : output;
+
+            this.capToTwoLines(container);
         } catch (error) {
             container.innerHTML = `<pre class="notation-error">${error.message}</pre>`;
         }
+    },
+
+    // On the first successful render, lock the container to exactly two lines of music.
+    // Uses the rendered SVG height to calculate the right value, then never changes it again.
+    capToTwoLines: function(container) {
+        if (container.dataset.heightLocked) return;
+
+        const svgs = container.querySelectorAll('svg');
+        if (svgs.length === 0) return;
+
+        const oneLineHeight = parseFloat(svgs[0].getAttribute('height')) || 0;
+        if (oneLineHeight <= 0) return;
+
+        const padding = 20; // 10px top + 10px bottom from .notation-view padding
+        container.style.height = (oneLineHeight * 2 + padding) + 'px';
+        container.dataset.heightLocked = '1';
     },
 
     // Match the notation staff width to the available container width

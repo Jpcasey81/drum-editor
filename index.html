@@ -39,37 +39,6 @@
                     <svg id="sheetMusic" class="sheet-music" width="800" height="400" preserveAspectRatio="xMinYMin meet"></svg>
                 </div>
 
-                <div class="groove-meta-bar">
-                    <div class="form-group">
-                        <label for="titleInput">Title:</label>
-                        <input type="text" id="titleInput" placeholder="Enter groove title">
-                    </div>
-                    <div class="form-group">
-                        <label for="authorInput">Author:</label>
-                        <input type="text" id="authorInput" placeholder="Enter author name">
-                    </div>
-                    <div class="form-group">
-                        <label for="commentInput">Comment:</label>
-                        <input type="text" id="commentInput" placeholder="Add a comment">
-                    </div>
-                    <button id="clearBtn" class="btn btn-danger">Clear</button>
-                </div>
-
-                <!-- Action Buttons -->
-                <div class="action-buttons">
-                    <button id="saveFileBtn" class="btn btn-secondary">
-                        <span class="icon">💾</span>
-                        SAVE
-                    </button>
-                    <button id="openFileBtn" class="btn btn-secondary">
-                        <span class="icon">📂</span>
-                        OPEN
-                    </button>
-                    <button id="printBtn" class="btn btn-primary">
-                        <span class="icon">🖨</span>
-                        PRINT
-                    </button>
-                </div>
             </div>
 
             <!-- Playback Controls -->
@@ -104,12 +73,34 @@
                 </div>
 
                 <div class="control-group">
-                    <label>Measures</label>
-                    <div class="number-stepper">
-                        <button id="measuresDecBtn" class="stepper-btn" aria-label="Decrease measures">−</button>
-                        <input type="number" id="measuresInput" value="1" min="1" max="32">
-                        <button id="measuresIncBtn" class="stepper-btn" aria-label="Increase measures">+</button>
-                    </div>
+                    <label>Title</label>
+                    <input type="text" id="titleInput" placeholder="Enter groove title">
+                </div>
+
+                <div class="control-group">
+                    <label>Author</label>
+                    <input type="text" id="authorInput" placeholder="Enter author name">
+                </div>
+
+                <div class="control-group">
+                    <label>Comment</label>
+                    <input type="text" id="commentInput" placeholder="Add a comment">
+                </div>
+
+                <div class="action-buttons">
+                    <button id="saveFileBtn" class="btn btn-secondary">
+                        <span class="icon">💾</span>
+                        SAVE
+                    </button>
+                    <button id="openFileBtn" class="btn btn-secondary">
+                        <span class="icon">📂</span>
+                        OPEN
+                    </button>
+                    <button id="printBtn" class="btn btn-primary">
+                        <span class="icon">🖨</span>
+                        PRINT
+                    </button>
+                    <button id="clearBtn" class="btn btn-danger">Clear</button>
                 </div>
             </aside>
         </div>
@@ -127,8 +118,8 @@
     <!-- App Scripts -->
     <script src="js/utils.js?v=20260502-4"></script>
     <script src="js/notationRenderer.js?v=20260502-4"></script>
-    <script src="js/patternEditor.js?v=20260503-2"></script>
-    <script src="js/grooveEditor.js?v=20260503-3"></script>
+    <script src="js/patternEditor.js?v=20260511-1"></script>
+    <script src="js/grooveEditor.js?v=20260511-1"></script>
     <script src="js/app.js?v=20260502-4"></script>
 
     <script>

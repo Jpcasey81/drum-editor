@@ -86,34 +86,76 @@ const GroovePatternEditor = {
 
         container.appendChild(wrapper);
         this.updatePlaybackHighlight();
+
+        // Keep labels pinned after every render and on scroll
+        const scrollContainer = container.parentElement;
+        const applyLabelOffset = () => {
+            const overlay = document.getElementById('labels-overlay');
+            if (overlay) overlay.setAttribute('transform', `translate(${scrollContainer.scrollLeft}, 0)`);
+        };
+        applyLabelOffset();
+        scrollContainer.onscroll = applyLabelOffset;
     },
 
-    // Render one text input above each measure inside the SVG so alignment matches exactly
-    renderMeasureTextInputs: function(wrapper, groove, layout) {
-        const {
-            gridStartX,
-            cellWidth,
-            cellGap,
-            beatGap,
-            stepsPerBeat,
-            stepsPerMeasure
-        } = layout;
+    // Render the header strip above each measure: text label, + and × buttons
+    renderMeasureHeaders: function(wrapper, groove, layout) {
+        const { gridStartX, cellWidth, cellGap, beatGap, stepsPerBeat, stepsPerMeasure } = layout;
+        const measures = groove.measures;
+        const measureText = DrumUtils.normalizeMeasureText(groove.measureText, measures);
 
-        const measureText = DrumUtils.normalizeMeasureText(groove.measureText, groove.measures);
+        const makeSvgBtn = (x, y, w, h, label, fillColor, textColor, onClick) => {
+            const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            g.style.cursor = 'pointer';
 
-        for (let measureIndex = 0; measureIndex < groove.measures; measureIndex++) {
+            const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            rect.setAttribute('x', String(x));
+            rect.setAttribute('y', String(y));
+            rect.setAttribute('width', String(w));
+            rect.setAttribute('height', String(h));
+            rect.setAttribute('rx', '3');
+            rect.setAttribute('fill', fillColor);
+            rect.setAttribute('stroke', textColor);
+            rect.setAttribute('stroke-width', '0.8');
+            rect.setAttribute('opacity', '0.75');
+
+            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            text.setAttribute('x', String(x + w / 2));
+            text.setAttribute('y', String(y + h / 2));
+            text.setAttribute('text-anchor', 'middle');
+            text.setAttribute('dominant-baseline', 'central');
+            text.setAttribute('font-size', '10');
+            text.setAttribute('fill', textColor);
+            text.setAttribute('pointer-events', 'none');
+            text.textContent = label;
+
+            g.appendChild(rect);
+            g.appendChild(text);
+
+            g.addEventListener('click', (e) => { e.stopPropagation(); onClick(); });
+            g.addEventListener('touchend', (e) => { e.preventDefault(); e.stopPropagation(); onClick(); });
+            g.addEventListener('mouseenter', () => rect.setAttribute('opacity', '1'));
+            g.addEventListener('mouseleave', () => rect.setAttribute('opacity', '0.75'));
+
+            return g;
+        };
+
+        for (let measureIndex = 0; measureIndex < measures; measureIndex++) {
             const startStep = measureIndex * stepsPerMeasure;
             const endStep = startStep + stepsPerMeasure - 1;
             const x = this.getCellX(startStep, gridStartX, cellWidth, cellGap, beatGap, stepsPerBeat);
             const endX = this.getCellX(endStep, gridStartX, cellWidth, cellGap, beatGap, stepsPerBeat) + cellWidth;
             const measureWidth = endX - x;
-            const inputWidth = Math.min(measureWidth, 180);
 
+            // How much space the buttons take on the right of the text input
+            const btnColumnW = measures > 1 ? 20 : 0;
+            const inputWidth = Math.max(20, measureWidth - btnColumnW - 2);
+
+            // Text input
             const foreignObject = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
-            foreignObject.setAttribute('x', x);
-            foreignObject.setAttribute('y', 8);
-            foreignObject.setAttribute('width', inputWidth);
-            foreignObject.setAttribute('height', 32);
+            foreignObject.setAttribute('x', String(x));
+            foreignObject.setAttribute('y', '4');
+            foreignObject.setAttribute('width', String(inputWidth));
+            foreignObject.setAttribute('height', '22');
 
             const htmlWrapper = document.createElementNS('http://www.w3.org/1999/xhtml', 'div');
             htmlWrapper.className = 'measure-text-input-wrap';
@@ -122,10 +164,9 @@ const GroovePatternEditor = {
             input.type = 'text';
             input.className = 'measure-text-input';
             input.value = measureText[measureIndex] || '';
-            input.placeholder = `Measure ${measureIndex + 1}`;
+            input.placeholder = `M${measureIndex + 1}`;
             input.maxLength = 20;
             input.setAttribute('data-measure-index', String(measureIndex));
-
             input.addEventListener('input', (event) => {
                 GrooveEditor.updateMeasureText(measureIndex, event.target.value);
             });
@@ -133,6 +174,23 @@ const GroovePatternEditor = {
             htmlWrapper.appendChild(input);
             foreignObject.appendChild(htmlWrapper);
             wrapper.appendChild(foreignObject);
+
+            // × delete button (hidden when only 1 measure)
+            if (measures > 1) {
+                const delX = endX - 18;
+                const del = makeSvgBtn(delX, 4, 16, 16, '×', '#3a1a1a', '#cc6666',
+                    () => GrooveEditor.deleteMeasure(measureIndex));
+                wrapper.appendChild(del);
+            }
+
+            // + insert-after button, positioned at the right bar line of this measure
+            const isLast = measureIndex === measures - 1;
+            const barX = isLast
+                ? endX + beatGap
+                : this.getCellX((measureIndex + 1) * stepsPerMeasure, gridStartX, cellWidth, cellGap, beatGap, stepsPerBeat) - beatGap / 2;
+            const add = makeSvgBtn(Math.round(barX - 8), 26, 16, 14, '+', '#1a2e1a', '#66cc66',
+                () => GrooveEditor.addMeasure(measureIndex));
+            wrapper.appendChild(add);
         }
     },
 
@@ -140,17 +198,34 @@ const GroovePatternEditor = {
     drawGrooveGrid: function(wrapper, groove) {
         const isTabletPortrait = window.matchMedia('(min-width: 641px) and (max-width: 1100px) and (orientation: portrait)').matches;
         const margin = 42;
-        const trackHeight = isTabletPortrait ? 40 : 26;
-        const trackGap = isTabletPortrait ? 4 : 2;
-        const cellWidth = isTabletPortrait ? 18 : 14;
-        const cellHeight = isTabletPortrait ? 28 : 18;
+        const trackGap = 1;
         const cellGap = isTabletPortrait ? 2 : 1;
         const beatGap = isTabletPortrait ? 8 : 4;
-        const labelWidth = isTabletPortrait ? 68 : 68;
+        const labelWidth = 68;
         const gridStartX = labelWidth + 8;
         const stepsPerMeasure = DrumUtils.calculateStepsPerMeasure(groove.timeSignature, groove.division);
         const beatsPerMeasure = this.getGridBeatCount(groove.timeSignature);
         const stepsPerBeat = Math.max(1, Math.round(stepsPerMeasure / beatsPerMeasure));
+
+        // Calculate trackHeight to fill the container vertically, cellWidth to fit 2 measures,
+        // then make cells square using the smaller of the two.
+        const numLanes = this.drumLaneConfig.length;
+        const svgParent = document.getElementById('sheetMusic').parentElement;
+        const containerHeight = svgParent.clientHeight - 24;
+        const containerWidth = svgParent.clientWidth - 24;
+        const minCellSize = isTabletPortrait ? 12 : 8;
+        const trackHeight = containerHeight > 0
+            ? Math.max(minCellSize + 2, Math.floor(
+                (containerHeight - margin - 22 - trackGap * (numLanes - 1)) / numLanes
+              ))
+            : (isTabletPortrait ? 40 : 26);
+        const cellWidth = containerWidth > 0
+            ? Math.max(minCellSize, Math.floor(
+                (containerWidth - gridStartX - margin - (2 * stepsPerMeasure - 1) * cellGap - (2 * beatsPerMeasure - 1) * beatGap)
+                / (2 * stepsPerMeasure)
+              ))
+            : (isTabletPortrait ? 18 : 14);
+        const cellHeight = Math.min(cellWidth, trackHeight - 2);
 
         const drums = this.drumLaneConfig.map((lane, index) => ({
             name: lane.name,
@@ -167,7 +242,7 @@ const GroovePatternEditor = {
         let totalHeight = 0;
         const totalSteps = DrumUtils.grooveToArray(groove.hihat).length;
 
-        this.renderMeasureTextInputs(wrapper, groove, {
+        this.renderMeasureHeaders(wrapper, groove, {
             gridStartX,
             cellWidth,
             cellGap,
@@ -175,6 +250,11 @@ const GroovePatternEditor = {
             stepsPerBeat,
             stepsPerMeasure
         });
+
+        // Labels are collected into a separate overlay group appended last so they
+        // render on top of cells and can be translated on scroll to stay visible.
+        const labelsOverlay = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        labelsOverlay.setAttribute('id', 'labels-overlay');
 
         drums.forEach((drum) => {
             const hits = DrumUtils.grooveToArray(drum.data);
@@ -187,7 +267,7 @@ const GroovePatternEditor = {
             labelBg.setAttribute('x', '0');
             labelBg.setAttribute('y', drum.y);
             labelBg.setAttribute('width', String(labelWidth + 8));
-            labelBg.setAttribute('height', String(cellHeight));
+            labelBg.setAttribute('height', String(trackHeight));
             labelBg.setAttribute('fill', '#1e1e1e');
             labelBg.setAttribute('rx', '0');
             labelGroup.appendChild(labelBg);
@@ -195,10 +275,10 @@ const GroovePatternEditor = {
             // Label text (full name, right-aligned)
             const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
             label.setAttribute('x', String(labelWidth));
-            label.setAttribute('y', drum.y + (isTabletPortrait ? 19 : 12));
+            label.setAttribute('y', drum.y + trackHeight / 2);
             label.setAttribute('text-anchor', 'end');
             label.setAttribute('dominant-baseline', 'central');
-            label.setAttribute('font-size', isTabletPortrait ? '12' : '10');
+            label.setAttribute('font-size', '12');
             label.setAttribute('fill', '#cccccc');
             label.setAttribute('class', 'drum-label');
             label.setAttribute('data-drum', drum.key);
@@ -207,12 +287,12 @@ const GroovePatternEditor = {
             label.style.cursor = 'pointer';
             labelGroup.appendChild(label);
 
-            wrapper.appendChild(labelGroup);
+            labelsOverlay.appendChild(labelGroup);
 
             // Draw groove hits for this drum
             hits.forEach((hit, index) => {
                 const cellX = this.getCellX(index, gridStartX, cellWidth, cellGap, beatGap, stepsPerBeat);
-                const cellY = drum.y + (isTabletPortrait ? 8 : 5);
+                const cellY = drum.y + Math.floor((trackHeight - cellHeight) / 2);
                 const displayHit = this.getDisplayHit(hit, drum.laneType);
 
                 // Create clickable cell
@@ -229,7 +309,9 @@ const GroovePatternEditor = {
                 cellBg.setAttribute('y', cellY);
                 cellBg.setAttribute('width', cellWidth);
                 cellBg.setAttribute('height', cellHeight);
-                cellBg.setAttribute('fill', '#252525');
+                const isDownbeat = (index % stepsPerBeat) === 0;
+                cellBg.setAttribute('fill', isDownbeat ? '#2e2e2e' : '#252525');
+                cellBg.setAttribute('data-downbeat', isDownbeat ? '1' : '0');
                 cellBg.setAttribute('stroke', '#3a3a3a');
                 cellBg.setAttribute('stroke-width', '1');
                 cellBg.setAttribute('rx', '2');
@@ -360,12 +442,22 @@ const GroovePatternEditor = {
             totalHeight = drum.y + trackHeight;
         });
 
+        // Background rect masks grid cells that scroll under the label column
+        const labelMask = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        labelMask.setAttribute('x', '0');
+        labelMask.setAttribute('y', '0');
+        labelMask.setAttribute('width', String(gridStartX));
+        labelMask.setAttribute('height', String(totalHeight + 20));
+        labelMask.setAttribute('fill', '#1a1a1a');
+        labelsOverlay.insertBefore(labelMask, labelsOverlay.firstChild);
+        wrapper.appendChild(labelsOverlay);
+
         // Set SVG dimensions
         const totalWidth = totalSteps > 0
             ? this.getCellX(totalSteps - 1, gridStartX, cellWidth, cellGap, beatGap, stepsPerBeat) + cellWidth + margin
             : gridStartX + margin;
         document.getElementById('sheetMusic').setAttribute('viewBox', `0 0 ${totalWidth} ${totalHeight + 20}`);
-        document.getElementById('sheetMusic').setAttribute('width', Math.min(totalWidth, 1200));
+        document.getElementById('sheetMusic').setAttribute('width', totalWidth);
         document.getElementById('sheetMusic').setAttribute('height', totalHeight + 22);
     },
 
@@ -721,7 +813,8 @@ const GroovePatternEditor = {
             cellBg.setAttribute('stroke', drumColor);
             cellBg.setAttribute('stroke-width', '1');
         } else {
-            cellBg.setAttribute('fill', '#252525');
+            const baseFill = cellBg.getAttribute('data-downbeat') === '1' ? '#2e2e2e' : '#252525';
+            cellBg.setAttribute('fill', baseFill);
             cellBg.setAttribute('stroke', '#3a3a3a');
             cellBg.setAttribute('stroke-width', '1');
         }
