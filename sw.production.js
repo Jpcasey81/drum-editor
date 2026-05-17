@@ -3,7 +3,6 @@ const CACHE_NAME = 'drum-editor-v6';
 // All assets pre-cached on install so the app works fully offline.
 // Update CACHE_NAME above whenever you deploy new code to push fresh assets to users.
 const PRECACHE_URLS = [
-    '/',
     'index.html',
     'css/styles.css',
     'js/utils.js',
