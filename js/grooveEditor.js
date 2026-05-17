@@ -532,7 +532,7 @@ const GrooveEditor = {
             .replace(/[^a-z0-9\-_ ]/gi, '')
             .trim()
             .replace(/\s+/g, '-') || 'untitled-groove';
-        DrumUtils.downloadFile(safeName + '-groove.txt', json, 'application/json');
+        DrumUtils.downloadFile(safeName + '-groove.txt', json, 'text/plain');
     },
 
     // Open a .drumgroove file and load it into the editor
