@@ -40,6 +40,7 @@ const DrumApp = {
         this.bindMainEvents();
         this.loadInitialState();
         this.enableEditing();
+        this.ensureSampleKitLoaded();
     },
 
     // Setup Web Audio API context
