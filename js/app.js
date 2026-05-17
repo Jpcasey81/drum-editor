@@ -871,6 +871,13 @@ if (document.readyState === 'loading') {
     DrumApp.setupKeyboardShortcuts();
 }
 
+// Re-render pattern grid when screen size or orientation changes
+let _resizeRenderTimer;
+window.addEventListener('resize', () => {
+    clearTimeout(_resizeRenderTimer);
+    _resizeRenderTimer = setTimeout(() => GroovePatternEditor.render(), 150);
+});
+
 // Save groove periodically
 setInterval(() => {
     DrumApp.saveGroove();

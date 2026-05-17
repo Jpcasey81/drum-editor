@@ -207,6 +207,7 @@ body {
 /* Edit Section */
 .edit-section {
     flex: 1;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     gap: 15px;
@@ -259,6 +260,7 @@ body {
     border-radius: 4px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
     flex: 1;
+    min-height: 0;
     overflow: auto;
     display: flex;
     justify-content: flex-start;
@@ -660,6 +662,70 @@ body {
         font-size: 12px;
         white-space: nowrap;
         min-width: 28px;
+    }
+}
+
+/* iPad landscape: tighten spacing so everything fits without scrolling */
+@media (orientation: landscape) and (max-height: 900px) and (min-width: 768px) {
+    .header {
+        padding: 5px 14px;
+    }
+
+    .header h1 {
+        font-size: 16px;
+    }
+
+    .content-wrapper {
+        padding: 8px;
+        gap: 8px;
+    }
+
+    .edit-section {
+        gap: 6px;
+    }
+
+    .groove-info {
+        padding: 6px 10px;
+        max-height: 180px;
+        overflow: hidden;
+    }
+
+    .notation-view {
+        padding: 4px 8px;
+        overflow-y: auto;
+        max-height: 160px;
+    }
+
+    .playback-controls {
+        width: 175px;
+        padding: 8px;
+        gap: 8px;
+    }
+
+    .play-btn {
+        padding: 8px;
+        font-size: 18px;
+    }
+
+    .time-display {
+        font-size: 13px;
+    }
+
+    .control-group {
+        gap: 4px;
+    }
+
+    .control-group input[type="number"],
+    .control-group input[type="range"],
+    .control-group select {
+        padding: 4px 6px;
+        font-size: 11px;
+    }
+
+    .action-buttons .btn {
+        padding: 5px 10px;
+        font-size: 11px;
+        min-width: 60px;
     }
 }
 
