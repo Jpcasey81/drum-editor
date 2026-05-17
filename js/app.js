@@ -384,20 +384,11 @@ const DrumApp = {
 
     // Map groove symbols to a playback velocity
     getHitVelocity: function(drumType, hit) {
-        if (hit === 'g') return 0.28;   // ghost: very soft
+        if (hit === 'g') return 0.22;   // ghost: very soft
         if (hit === 'r') return 0.65;   // rim click: moderate
 
-        switch (drumType) {
-            case 'crash':  return hit === 'X' ? 1.3  : 1.0;
-            case 'hihat':  return hit === 'X' ? 1.15 : 0.85;
-            case 'ride':   return hit === 'X' ? 1.15 : 0.9;
-            case 'snare':  return hit === 'O' ? 1.2  : 0.9;
-            case 'kick':   return hit === 'O' ? 1.15 : 1.0;
-            case 'hitom':  return hit === 'O' ? 1.2  : 0.95;
-            case 'midtom': return hit === 'O' ? 1.2  : 1.0;
-            case 'lowtom': return hit === 'O' ? 1.2  : 1.05;
-            default:       return 1.0;
-        }
+        const accentChar = (drumType === 'hihat' || drumType === 'ride' || drumType === 'crash') ? 'X' : 'O';
+        return hit === accentChar ? 1.30 : 0.65;
     },
 
     // Update the time display during playback
