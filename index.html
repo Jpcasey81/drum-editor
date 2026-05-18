@@ -34,6 +34,16 @@
                     <div id="notationView" class="notation-view"></div>
                 </div>
 
+                <!-- Note Type Toolbar -->
+                <div class="note-type-toolbar" id="noteTypeToolbar">
+                    <span class="note-type-label">Draw:</span>
+                    <button class="note-type-btn is-active" data-type="normal">Normal</button>
+                    <button class="note-type-btn" data-type="accent">Accent</button>
+                    <button class="note-type-btn" data-type="ghost">Ghost</button>
+                    <button class="note-type-btn" data-type="rimclick">Rim Click</button>
+                    <button class="note-type-btn" data-type="flam">Flam</button>
+                </div>
+
                 <!-- Sheet Music Display -->
                 <div class="sheet-music-container">
                     <svg id="sheetMusic" class="sheet-music" width="800" height="400" preserveAspectRatio="xMinYMin meet"></svg>
@@ -105,9 +115,6 @@
             </aside>
         </div>
     </div>
-
-    <!-- Note Type Context Menu -->
-    <div id="noteContextMenu" class="note-context-menu hidden"></div>
 
     <!-- External Libraries -->
     <script src="lib/midi.js/lib/midi.min.js"></script>

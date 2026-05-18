@@ -7,6 +7,10 @@ const GroovePatternEditor = {
     editMode: true,
     playbackStepIndex: null,
     activePlaybackCells: [],
+    selectedNoteType: 'normal',
+    isDragging: false,
+    dragMode: null,        // 'paint' | 'erase'
+    lastDragCellKey: null, // '<laneKey>-<index>' to skip re-painting same cell
     drumColors: {
         crash: '#F59E0B',
         hihat: '#FF6B35',
@@ -43,9 +47,6 @@ const GroovePatternEditor = {
         pedal:   [],
     },
 
-    contextMenuState: { drumKey: null, laneKey: null, hitIndex: null },
-    _suppressNextTap: false,
-
     // Group compound eighth-note meters into dotted-quarter beats for grid spacing
     getGridBeatCount: function(timeSignature) {
         const timeSig = DrumUtils.parseTimeSignature(timeSignature);
@@ -56,17 +57,41 @@ const GroovePatternEditor = {
 
         return timeSig.numerator;
     },
-    
-    // Initialize the pattern editor
+
     init: function() {
         this.render();
         this.bindEvents();
     },
 
-    // Set which drum to edit
     selectDrumType: function(drumType) {
         this.currentDrumType = drumType;
         this.render();
+    },
+
+    // Switch the active note type and update toolbar highlight
+    selectNoteType: function(type) {
+        this.selectedNoteType = type;
+        document.querySelectorAll('.note-type-btn').forEach((btn) => {
+            btn.classList.toggle('is-active', btn.getAttribute('data-type') === type);
+        });
+    },
+
+    // Return the correct hit character for the selected note type on a given lane,
+    // falling back to Normal when the type isn't valid for that lane.
+    resolveNoteChar: function(noteType, laneKey) {
+        const labelMap = {
+            normal:   'Normal',
+            accent:   'Accent',
+            ghost:    'Ghost',
+            rimclick: 'Rim Click',
+            flam:     'Flam',
+        };
+        const options = this.noteTypeOptions[laneKey] || [];
+        const target = labelMap[noteType];
+        const match = options.find((o) => o.label === target);
+        if (match) return match.char;
+        const normal = options.find((o) => o.label === 'Normal');
+        return normal ? normal.char : null;
     },
 
     // Render the interactive groove grid
@@ -76,18 +101,15 @@ const GroovePatternEditor = {
 
         container.innerHTML = '';
         const groove = GrooveEditor.currentGroove;
-        
-        // Create main wrapper
+
         const wrapper = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         wrapper.setAttribute('id', 'groove-wrapper');
-        
-        // Draw the groove pattern grid
+
         this.drawGrooveGrid(wrapper, groove);
 
         container.appendChild(wrapper);
         this.updatePlaybackHighlight();
 
-        // Keep labels pinned after every render and on scroll
         const scrollContainer = container.parentElement;
         const applyLabelOffset = () => {
             const overlay = document.getElementById('labels-overlay');
@@ -146,11 +168,9 @@ const GroovePatternEditor = {
             const endX = this.getCellX(endStep, gridStartX, cellWidth, cellGap, beatGap, stepsPerBeat) + cellWidth;
             const measureWidth = endX - x;
 
-            // How much space the buttons take on the right of the text input
             const btnColumnW = measures > 1 ? 20 : 0;
             const inputWidth = Math.max(20, measureWidth - btnColumnW - 2);
 
-            // Text input
             const foreignObject = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
             foreignObject.setAttribute('x', String(x));
             foreignObject.setAttribute('y', '4');
@@ -175,7 +195,6 @@ const GroovePatternEditor = {
             foreignObject.appendChild(htmlWrapper);
             wrapper.appendChild(foreignObject);
 
-            // × delete button (hidden when only 1 measure)
             if (measures > 1) {
                 const delX = endX - 18;
                 const del = makeSvgBtn(delX, 4, 16, 16, '×', '#3a1a1a', '#cc6666',
@@ -183,7 +202,6 @@ const GroovePatternEditor = {
                 wrapper.appendChild(del);
             }
 
-            // + insert-after button, positioned at the right bar line of this measure
             const isLast = measureIndex === measures - 1;
             const barX = isLast
                 ? endX + beatGap
@@ -207,8 +225,6 @@ const GroovePatternEditor = {
         const beatsPerMeasure = this.getGridBeatCount(groove.timeSignature);
         const stepsPerBeat = Math.max(1, Math.round(stepsPerMeasure / beatsPerMeasure));
 
-        // Calculate trackHeight to fill the container vertically, cellWidth to fit 2 measures,
-        // then make cells square using the smaller of the two.
         const numLanes = this.drumLaneConfig.length;
         const svgParent = document.getElementById('sheetMusic').parentElement;
         const containerHeight = svgParent.clientHeight - 24;
@@ -251,18 +267,14 @@ const GroovePatternEditor = {
             stepsPerMeasure
         });
 
-        // Labels are collected into a separate overlay group appended last so they
-        // render on top of cells and can be translated on scroll to stay visible.
         const labelsOverlay = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         labelsOverlay.setAttribute('id', 'labels-overlay');
 
         drums.forEach((drum) => {
             const hits = DrumUtils.grooveToArray(drum.data);
-            
-            // Draw drum label and selector button
+
             const labelGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-            
-            // Background for label
+
             const labelBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
             labelBg.setAttribute('x', '0');
             labelBg.setAttribute('y', drum.y);
@@ -272,7 +284,6 @@ const GroovePatternEditor = {
             labelBg.setAttribute('rx', '0');
             labelGroup.appendChild(labelBg);
 
-            // Label text (full name, right-aligned)
             const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
             label.setAttribute('x', String(labelWidth));
             label.setAttribute('y', drum.y + trackHeight / 2);
@@ -289,20 +300,19 @@ const GroovePatternEditor = {
 
             labelsOverlay.appendChild(labelGroup);
 
-            // Draw groove hits for this drum
             hits.forEach((hit, index) => {
                 const cellX = this.getCellX(index, gridStartX, cellWidth, cellGap, beatGap, stepsPerBeat);
                 const cellY = drum.y + Math.floor((trackHeight - cellHeight) / 2);
                 const displayHit = this.getDisplayHit(hit, drum.laneType);
 
-                // Create clickable cell
                 const cellGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
                 cellGroup.setAttribute('class', 'groove-cell');
                 cellGroup.setAttribute('data-drum', drum.key);
+                cellGroup.setAttribute('data-lane', drum.laneKey);
+                if (drum.laneType) cellGroup.setAttribute('data-lane-type', drum.laneType);
                 cellGroup.setAttribute('data-index', index);
                 cellGroup.style.cursor = this.editMode ? 'pointer' : 'default';
 
-                // Cell background
                 const cellBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
                 cellBg.setAttribute('class', 'groove-cell-bg');
                 cellBg.setAttribute('x', cellX);
@@ -321,88 +331,30 @@ const GroovePatternEditor = {
                 }
                 cellGroup.appendChild(cellBg);
 
-                // Draw hit indicator
                 if (displayHit !== '-' && displayHit !== '') {
                     this.drawHitSymbol(cellGroup, cellX + cellWidth / 2, cellY, cellHeight, displayHit, drum.color, cellBg);
                 }
 
-                // Add click event (mouse only; touch handled via touchend below)
-                cellGroup.addEventListener('click', (e) => {
-                    if (this.editMode) {
-                        this.toggleHit(drum.key, drum.laneKey, index, drum.laneType);
-                    }
-                });
-
-                cellGroup.addEventListener('contextmenu', (e) => {
+                // mousedown starts a drag and paints the first cell
+                cellGroup.addEventListener('mousedown', (e) => {
+                    if (e.button !== 0 || !this.editMode) return;
                     e.preventDefault();
-                    if (this.editMode) {
-                        this.showNoteContextMenu(e, drum.key, drum.laneKey, index);
-                    }
+                    const current = (DrumUtils.grooveToArray(GrooveEditor.currentGroove[drum.key])[index]) || '-';
+                    this.isDragging = true;
+                    this.dragMode = this._isEraseStart(current, drum.laneKey, drum.laneType) ? 'erase' : 'paint';
+                    this.lastDragCellKey = `${drum.laneKey}-${index}`;
+                    this.paintCell(drum.key, drum.laneKey, index, drum.laneType);
                 });
 
-                // Touch: long-press → context menu, short tap → toggle.
-                // e.preventDefault() on touchstart is the only reliable way to stop
-                // iOS Safari from showing its own copy/callout menu on long press.
-                // It also suppresses the synthetic click, so toggle lives in touchend.
-                let longPressTimer = null;
-                let touchStartX = 0;
-                let touchStartY = 0;
-                let touchMoved = false;
-
-                cellGroup.addEventListener('touchstart', (e) => {
-                    if (!this.editMode) return;
-                    e.preventDefault();
-                    touchMoved = false;
-                    // If the context menu is open, the tap should just close it
-                    const menu = document.getElementById('noteContextMenu');
-                    if (menu && !menu.classList.contains('hidden')) {
-                        this._suppressNextTap = true;
-                    }
-                    const touch = e.touches[0];
-                    touchStartX = touch.clientX;
-                    touchStartY = touch.clientY;
-                    longPressTimer = setTimeout(() => {
-                        longPressTimer = null;
-                        if (navigator.vibrate) navigator.vibrate(30);
-                        this.showNoteContextMenu(
-                            { clientX: touch.clientX, clientY: touch.clientY },
-                            drum.key, drum.laneKey, index
-                        );
-                    }, 500);
-                });
-
-                cellGroup.addEventListener('touchmove', (e) => {
-                    if (longPressTimer === null) return;
-                    const touch = e.touches[0];
-                    const dx = touch.clientX - touchStartX;
-                    const dy = touch.clientY - touchStartY;
-                    if (dx * dx + dy * dy > 64) {
-                        touchMoved = true;
-                        clearTimeout(longPressTimer);
-                        longPressTimer = null;
-                    }
-                }, { passive: true });
-
-                const onTouchEnd = () => {
-                    if (longPressTimer !== null) {
-                        clearTimeout(longPressTimer);
-                        longPressTimer = null;
-                        if (!touchMoved && !this._suppressNextTap) {
-                            this.toggleHit(drum.key, drum.laneKey, index, drum.laneType);
-                        }
-                    }
-                    this._suppressNextTap = false;
-                };
-                cellGroup.addEventListener('touchend', onTouchEnd);
-                cellGroup.addEventListener('touchcancel', () => {
-                    if (longPressTimer !== null) {
-                        clearTimeout(longPressTimer);
-                        longPressTimer = null;
-                    }
-                    this._suppressNextTap = false;
-                });
-
+                // mouseenter paints during drag, or shows hover tint when idle
                 cellGroup.addEventListener('mouseenter', () => {
+                    if (this.isDragging && this.editMode) {
+                        const cellKey = `${drum.laneKey}-${index}`;
+                        if (cellKey === this.lastDragCellKey) return;
+                        this.lastDragCellKey = cellKey;
+                        this.paintCell(drum.key, drum.laneKey, index, drum.laneType);
+                        return;
+                    }
                     if (index !== this.playbackStepIndex && (displayHit === '-' || displayHit === '')) {
                         cellBg.setAttribute('fill', '#3d3d3d');
                     }
@@ -411,6 +363,17 @@ const GroovePatternEditor = {
                 cellGroup.addEventListener('mouseleave', () => {
                     this.restoreCellBackground(cellBg, index, drum.key, drum.color);
                 });
+
+                // Touch: touchstart begins drag, global touchmove continues it
+                cellGroup.addEventListener('touchstart', (e) => {
+                    if (!this.editMode) return;
+                    e.preventDefault();
+                    const current = (DrumUtils.grooveToArray(GrooveEditor.currentGroove[drum.key])[index]) || '-';
+                    this.isDragging = true;
+                    this.dragMode = this._isEraseStart(current, drum.laneKey, drum.laneType) ? 'erase' : 'paint';
+                    this.lastDragCellKey = `${drum.laneKey}-${index}`;
+                    this.paintCell(drum.key, drum.laneKey, index, drum.laneType);
+                }, { passive: false });
 
                 wrapper.appendChild(cellGroup);
             });
@@ -442,7 +405,6 @@ const GroovePatternEditor = {
             totalHeight = drum.y + trackHeight;
         });
 
-        // Background rect masks grid cells that scroll under the label column
         const labelMask = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
         labelMask.setAttribute('x', '0');
         labelMask.setAttribute('y', '0');
@@ -452,7 +414,6 @@ const GroovePatternEditor = {
         labelsOverlay.insertBefore(labelMask, labelsOverlay.firstChild);
         wrapper.appendChild(labelsOverlay);
 
-        // Set SVG dimensions
         const totalWidth = totalSteps > 0
             ? this.getCellX(totalSteps - 1, gridStartX, cellWidth, cellGap, beatGap, stepsPerBeat) + cellWidth + margin
             : gridStartX + margin;
@@ -461,70 +422,75 @@ const GroovePatternEditor = {
         document.getElementById('sheetMusic').setAttribute('height', totalHeight + 22);
     },
 
-    // Calculate the X position for a step with extra spacing between beats
-    getCellX: function(index, gridStartX, cellWidth, cellGap, beatGap, stepsPerBeat) {
-        const beatIndex = Math.floor(index / stepsPerBeat);
-        return gridStartX + (index * (cellWidth + cellGap)) + (beatIndex * beatGap);
+    // Determine if a mousedown/touchstart should start an erase drag
+    _isEraseStart: function(current, laneKey, laneType) {
+        if (laneType === 'hihat-open') return current === '+';
+        if (laneType === 'kick')       return current === 'o' || current === 'b';
+        if (laneType === 'pedal')      return current === 'p' || current === 'b';
+        const targetChar = this.resolveNoteChar(this.selectedNoteType, laneKey);
+        return current === targetChar;
     },
 
-    // Detect beat boundaries for visual grouping
-    isBeatBoundary: function(index, stepsPerBeat) {
-        return (index + 1) % stepsPerBeat === 0;
-    },
-
-    // Detect measure boundaries for stronger separators
-    isMeasureBoundary: function(index, stepsPerMeasure) {
-        return (index + 1) % stepsPerMeasure === 0;
-    },
-
-    // Toggle a hit at specific position, with lane-type-aware logic for split lanes
-    toggleHit: function(drumKey, laneKey, hitIndex, laneType) {
+    // Paint or erase a single cell according to the current drag mode
+    paintCell: function(drumKey, laneKey, hitIndex, laneType) {
         const groove = GrooveEditor.currentGroove;
         const pattern = DrumUtils.grooveToArray(groove[drumKey]);
         const current = pattern[hitIndex] || '-';
+        let targetChar;
 
-        switch (laneType) {
-            case 'hihat-closed':
-                // Toggle closed hi-hat; if open is present, replace it with closed
-                pattern[hitIndex] = (current === 'x' || current === 'X' || current === 'g') ? '-' : 'x';
-                break;
-            case 'hihat-open':
-                // Toggle open hi-hat; if closed is present, replace it with open
-                pattern[hitIndex] = current === '+' ? '-' : '+';
-                break;
-            case 'kick':
-                // Toggle kick component; preserve pedal if present
-                if (current === '-')      pattern[hitIndex] = 'o';
-                else if (current === 'o') pattern[hitIndex] = '-';
-                else if (current === 'p') pattern[hitIndex] = 'b';
-                else if (current === 'b') pattern[hitIndex] = 'p';
-                break;
-            case 'pedal':
-                // Toggle pedal component; preserve kick if present
-                if (current === '-')      pattern[hitIndex] = 'p';
-                else if (current === 'p') pattern[hitIndex] = '-';
-                else if (current === 'o') pattern[hitIndex] = 'b';
-                else if (current === 'b') pattern[hitIndex] = 'o';
-                break;
-            default: {
-                const drumLane = this.drumLaneConfig.find((lane) => lane.laneKey === laneKey);
-                if (!drumLane) return;
-                pattern[hitIndex] = (current === '-' || current === '') ? drumLane.hitChar : '-';
+        if (this.dragMode === 'erase') {
+            if (laneType === 'kick') {
+                if      (current === 'o') targetChar = '-';
+                else if (current === 'b') targetChar = 'p';
+                else return;
+            } else if (laneType === 'pedal') {
+                if      (current === 'p') targetChar = '-';
+                else if (current === 'b') targetChar = 'o';
+                else return;
+            } else {
+                if (current === '-') return;
+                targetChar = '-';
+            }
+        } else {
+            // paint mode
+            if (laneType === 'hihat-open') {
+                if (current === '+') return;
+                targetChar = '+';
+            } else if (laneType === 'kick') {
+                if (current === 'o' || current === 'b') return;
+                targetChar = current === 'p' ? 'b' : 'o';
+            } else if (laneType === 'pedal') {
+                if (current === 'p' || current === 'b') return;
+                targetChar = current === 'o' ? 'b' : 'p';
+            } else {
+                targetChar = this.resolveNoteChar(this.selectedNoteType, laneKey);
+                if (!targetChar || current === targetChar) return;
             }
         }
 
+        pattern[hitIndex] = targetChar;
         groove[drumKey] = DrumUtils.arrayToGroove(pattern, groove.measures, groove.division, groove.timeSignature);
         GrooveEditor.render();
         GrooveEditor.updateURL();
     },
 
-    // Returns true for hit types that are drawn as outlines on a dark cell (not filled)
+    getCellX: function(index, gridStartX, cellWidth, cellGap, beatGap, stepsPerBeat) {
+        const beatIndex = Math.floor(index / stepsPerBeat);
+        return gridStartX + (index * (cellWidth + cellGap)) + (beatIndex * beatGap);
+    },
+
+    isBeatBoundary: function(index, stepsPerBeat) {
+        return (index + 1) % stepsPerBeat === 0;
+    },
+
+    isMeasureBoundary: function(index, stepsPerMeasure) {
+        return (index + 1) % stepsPerMeasure === 0;
+    },
+
     isOutlineHit: function(hitChar) {
         return hitChar === 'g' || hitChar === '+' || hitChar === 'p';
     },
 
-    // Returns the character to display for a lane given the raw stored value.
-    // Split lanes (hihat-closed, hihat-open, kick, pedal) only show their own note type.
     getDisplayHit: function(rawHit, laneType) {
         if (!rawHit || rawHit === '-' || rawHit === '') return '-';
         switch (laneType) {
@@ -536,7 +502,6 @@ const GroovePatternEditor = {
         }
     },
 
-    // Look up the current hit character for a drum lane at a step index
     getCellHit: function(drumKey, stepIndex) {
         const groove = GrooveEditor.currentGroove;
         if (!groove || !groove[drumKey]) return '-';
@@ -544,9 +509,6 @@ const GroovePatternEditor = {
         return pattern[stepIndex] || '-';
     },
 
-    // Draw the correct symbol for a hit based on its character type.
-    // Filled hits (normal, accent, flam, rim, kick) fill the cellBg rect with color.
-    // Outline hits (ghost, open hi-hat, hi-hat foot) draw on top of the dark cell.
     drawHitSymbol: function(group, cx, cellY, cellHeight, hitChar, color, cellBg) {
         const midY = cellY + cellHeight / 2;
         const fontSize = Math.max(8, Math.round(cellHeight * 0.75));
@@ -577,7 +539,6 @@ const GroovePatternEditor = {
                 addText('>');
                 break;
             case 'g': {
-                // Ghost: hollow circle on dark cell
                 const r = Math.max(3, cellHeight * 0.28);
                 const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
                 circle.setAttribute('cx', String(cx));
@@ -600,7 +561,6 @@ const GroovePatternEditor = {
                 addText('×');
                 break;
             case '+': {
-                // Open hi-hat: dashed hollow circle on dark cell
                 const r = Math.max(3, cellHeight * 0.28);
                 const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
                 circle.setAttribute('cx', String(cx));
@@ -616,7 +576,6 @@ const GroovePatternEditor = {
                 break;
             }
             case 'p': {
-                // Hi-hat foot: hollow diamond on dark cell
                 const d = Math.max(3, cellHeight * 0.3);
                 const diamond = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
                 diamond.setAttribute('points', `${cx},${midY - d} ${cx + d},${midY} ${cx},${midY + d} ${cx - d},${midY}`);
@@ -629,7 +588,6 @@ const GroovePatternEditor = {
                 break;
             }
             case 'b':
-                // Kick + hi-hat foot: filled cell + small white diamond
                 fillCell();
                 // eslint-disable-next-line no-case-declarations
                 const d = Math.max(2, cellHeight * 0.22);
@@ -643,156 +601,96 @@ const GroovePatternEditor = {
                 group.appendChild(diamond);
                 break;
             default:
-                // Normal: fill entire cell with drum color
                 fillCell();
                 break;
         }
     },
 
-    // Show the note-type context menu at the cursor position
-    showNoteContextMenu: function(e, drumKey, laneKey, hitIndex) {
-        const options = this.noteTypeOptions[laneKey] || [];
-        if (options.length === 0) return;
-
-        this.contextMenuState = { drumKey, laneKey, hitIndex };
-
-        const groove = GrooveEditor.currentGroove;
-        const pattern = DrumUtils.grooveToArray(groove[drumKey]);
-        const currentHit = pattern[hitIndex] || '-';
-        const displayHit = this.getDisplayHit(currentHit, (this.drumLaneConfig.find((l) => l.laneKey === laneKey) || {}).laneType || null);
-        const laneName = (this.drumLaneConfig.find((l) => l.laneKey === laneKey) || {}).name || laneKey;
-        const isActive = displayHit !== '-' && displayHit !== '';
-
-        const menu = document.getElementById('noteContextMenu');
-        if (!menu) return;
-
-        let html = `<div class="note-context-title">${laneName}</div>`;
-        options.forEach((option) => {
-            const isCurrent = currentHit === option.char;
-            html += `<button class="note-context-item${isCurrent ? ' is-current' : ''}" data-char="${option.char}">${option.label}</button>`;
-        });
-        if (isActive) {
-            html += '<div class="note-context-sep"></div>';
-            html += '<button class="note-context-item note-context-remove" data-char="-">Remove</button>';
-        }
-
-        menu.innerHTML = html;
-        menu.classList.remove('hidden');
-
-        // Position after content is set so clientWidth/Height are accurate
-        const menuW = menu.offsetWidth || 150;
-        const menuH = menu.offsetHeight || 200;
-        const x = Math.min(e.clientX + 2, window.innerWidth - menuW - 8);
-        const y = Math.min(e.clientY + 2, window.innerHeight - menuH - 8);
-        menu.style.left = x + 'px';
-        menu.style.top = y + 'px';
-
-        menu.querySelectorAll('.note-context-item').forEach((btn) => {
-            btn.addEventListener('click', (evt) => {
-                evt.stopPropagation();
-                this.setHitType(this.contextMenuState.drumKey, this.contextMenuState.laneKey, this.contextMenuState.hitIndex, btn.getAttribute('data-char'));
-                this.hideNoteContextMenu();
-            });
-        });
-    },
-
-    // Hide the note-type context menu
-    hideNoteContextMenu: function() {
-        const menu = document.getElementById('noteContextMenu');
-        if (menu) menu.classList.add('hidden');
-        this.contextMenuState = { drumKey: null, laneKey: null, hitIndex: null };
-    },
-
-    // Set a specific hit character at the given position
-    setHitType: function(drumKey, laneKey, hitIndex, char) {
-        if (!drumKey || hitIndex === null) return;
-        const groove = GrooveEditor.currentGroove;
-        const pattern = DrumUtils.grooveToArray(groove[drumKey]);
-        pattern[hitIndex] = char;
-        groove[drumKey] = DrumUtils.arrayToGroove(pattern, groove.measures, groove.division, groove.timeSignature);
-        GrooveEditor.render();
-        GrooveEditor.updateURL();
-    },
-
     // Bind event listeners
     bindEvents: function() {
-        // Drum label click to select
+        // Drum label click
         const wrapper = document.getElementById('sheetMusic');
         if (wrapper) {
             wrapper.addEventListener('click', (e) => {
                 if (e.target.classList.contains('drum-label')) {
-                    const drum = e.target.getAttribute('data-drum');
-                    this.selectDrumType(drum);
+                    this.selectDrumType(e.target.getAttribute('data-drum'));
                 }
             });
         }
 
-        // Dismiss context menu when clicking/tapping outside it or pressing Escape
-        const dismissOutside = (e) => {
-            if (!e.target.closest('#noteContextMenu')) {
-                this.hideNoteContextMenu();
-            }
-        };
-        document.addEventListener('click', dismissOutside);
-        document.addEventListener('touchstart', dismissOutside, { passive: true });
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') this.hideNoteContextMenu();
+        // Note type toolbar buttons
+        document.querySelectorAll('.note-type-btn').forEach((btn) => {
+            btn.addEventListener('click', () => this.selectNoteType(btn.getAttribute('data-type')));
         });
+
+        // End drag on mouse release anywhere
+        document.addEventListener('mouseup', () => {
+            this.isDragging = false;
+            this.dragMode = null;
+            this.lastDragCellKey = null;
+        });
+
+        // Touch drag: find cell under finger and paint it
+        document.addEventListener('touchmove', (e) => {
+            if (!this.isDragging || !this.editMode) return;
+            e.preventDefault();
+            const touch = e.touches[0];
+            const el = document.elementFromPoint(touch.clientX, touch.clientY);
+            if (!el) return;
+            const cellGroup = el.closest ? el.closest('.groove-cell') : null;
+            if (!cellGroup) return;
+            const drumKey = cellGroup.getAttribute('data-drum');
+            const hitIndex = Number(cellGroup.getAttribute('data-index'));
+            const laneKey = cellGroup.getAttribute('data-lane');
+            const laneType = cellGroup.getAttribute('data-lane-type') || null;
+            const cellKey = `${laneKey}-${hitIndex}`;
+            if (cellKey === this.lastDragCellKey) return;
+            this.lastDragCellKey = cellKey;
+            this.paintCell(drumKey, laneKey, hitIndex, laneType);
+        }, { passive: false });
+
+        // End touch drag
+        const endTouchDrag = () => {
+            this.isDragging = false;
+            this.dragMode = null;
+            this.lastDragCellKey = null;
+        };
+        document.addEventListener('touchend', endTouchDrag);
+        document.addEventListener('touchcancel', endTouchDrag);
     },
 
-    // Enable/disable edit mode
     setEditMode: function(enabled) {
         this.editMode = enabled;
         this.render();
-        
-        // Update cursor for all cells
-        const cells = document.querySelectorAll('.groove-cell');
-        cells.forEach(cell => {
+        document.querySelectorAll('.groove-cell').forEach((cell) => {
             cell.style.cursor = enabled ? 'pointer' : 'default';
         });
     },
 
-    // Clear current drum pattern
     clearDrumPattern: function(drumType) {
         const groove = GrooveEditor.currentGroove;
         const emptyPattern = DrumUtils.normalizeGroovePattern('', groove.measures, groove.division, groove.timeSignature, '-');
-        
+
         switch (drumType) {
-            case 'crash':
-                groove.crash = emptyPattern;
-                break;
-            case 'hihat':
-                groove.hihat = emptyPattern;
-                break;
-            case 'hitom':
-                groove.hitom = emptyPattern;
-                break;
-            case 'midtom':
-                groove.midtom = emptyPattern;
-                break;
-            case 'snare':
-                groove.snare = emptyPattern;
-                break;
-            case 'lowtom':
-                groove.lowtom = emptyPattern;
-                break;
-            case 'kick':
-                groove.kick = emptyPattern;
-                break;
+            case 'crash':  groove.crash  = emptyPattern; break;
+            case 'hihat':  groove.hihat  = emptyPattern; break;
+            case 'hitom':  groove.hitom  = emptyPattern; break;
+            case 'midtom': groove.midtom = emptyPattern; break;
+            case 'snare':  groove.snare  = emptyPattern; break;
+            case 'lowtom': groove.lowtom = emptyPattern; break;
+            case 'kick':   groove.kick   = emptyPattern; break;
         }
-        
+
         GrooveEditor.render();
         GrooveEditor.updateURL();
     },
 
-    // Apply highlight styling to a cell during playback
     applyPlaybackHighlight: function(cellBg, drumColor) {
         cellBg.setAttribute('fill', '#3d3520');
         cellBg.setAttribute('stroke', drumColor);
         cellBg.setAttribute('stroke-width', '2');
     },
 
-    // Restore the default visual state for a playback cell
     clearPlaybackHighlight: function(cellBg) {
         const drumKey = cellBg.parentElement.getAttribute('data-drum');
         const stepIndex = Number(cellBg.parentElement.getAttribute('data-index'));
@@ -800,7 +698,6 @@ const GroovePatternEditor = {
         this.restoreCellBackground(cellBg, stepIndex, drumKey, drumColor);
     },
 
-    // Restore the correct non-hover background for a cell using its stored display-hit attribute
     restoreCellBackground: function(cellBg, stepIndex, drumKey, drumColor) {
         if (stepIndex === this.playbackStepIndex) {
             this.applyPlaybackHighlight(cellBg, drumColor);
@@ -820,7 +717,6 @@ const GroovePatternEditor = {
         }
     },
 
-    // Update DOM elements for the active playback step without re-rendering the grid
     updatePlaybackHighlight: function() {
         this.activePlaybackCells.forEach((cellBg) => {
             this.clearPlaybackHighlight(cellBg);
@@ -835,13 +731,11 @@ const GroovePatternEditor = {
         activeCells.forEach((cellBg) => {
             const drumKey = cellBg.parentElement.getAttribute('data-drum');
             const drumColor = this.drumColors[drumKey] || '#333';
-
             this.applyPlaybackHighlight(cellBg, drumColor);
             this.activePlaybackCells.push(cellBg);
         });
     },
 
-    // Update the highlighted playback step
     setPlaybackStep: function(stepIndex) {
         this.playbackStepIndex = Number.isInteger(stepIndex) ? stepIndex : null;
         this.updatePlaybackHighlight();
