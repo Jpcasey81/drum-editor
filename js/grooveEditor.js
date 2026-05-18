@@ -236,8 +236,21 @@ const GrooveEditor = {
 
         const saveFileBtn = document.getElementById('saveFileBtn');
         const openFileBtn = document.getElementById('openFileBtn');
+        const openTextBtn = document.getElementById('openTextBtn');
         if (saveFileBtn) saveFileBtn.addEventListener('click', () => this.saveToFile());
         if (openFileBtn) openFileBtn.addEventListener('click', () => this.openFromFile());
+        if (openTextBtn) openTextBtn.addEventListener('click', () => this.showOpenTextModal());
+
+        const openTextModal   = document.getElementById('openTextModal');
+        const openTextLoadBtn = document.getElementById('openTextLoadBtn');
+        const openTextCancelBtn = document.getElementById('openTextCancelBtn');
+        if (openTextLoadBtn)   openTextLoadBtn.addEventListener('click', () => this.loadFromText());
+        if (openTextCancelBtn) openTextCancelBtn.addEventListener('click', () => this.hideOpenTextModal());
+        if (openTextModal) {
+            openTextModal.addEventListener('click', (e) => {
+                if (e.target === openTextModal) this.hideOpenTextModal();
+            });
+        }
     },
 
     // Clear the current groove
@@ -555,6 +568,39 @@ const GrooveEditor = {
             reader.readAsText(file);
         });
         input.click();
+    },
+
+    showOpenTextModal: function() {
+        const modal   = document.getElementById('openTextModal');
+        const area    = document.getElementById('openTextArea');
+        const error   = document.getElementById('openTextError');
+        if (!modal) return;
+        area.value = '';
+        error.textContent = '';
+        error.classList.add('hidden');
+        modal.classList.remove('hidden');
+        area.focus();
+    },
+
+    hideOpenTextModal: function() {
+        const modal = document.getElementById('openTextModal');
+        if (modal) modal.classList.add('hidden');
+    },
+
+    loadFromText: function() {
+        const area  = document.getElementById('openTextArea');
+        const error = document.getElementById('openTextError');
+        const text  = area ? area.value.trim() : '';
+        error.textContent = '';
+        error.classList.add('hidden');
+        try {
+            const data = JSON.parse(text);
+            this.loadFromData(data);
+            this.hideOpenTextModal();
+        } catch (err) {
+            error.textContent = 'Invalid groove text — please paste the full contents of a saved .txt file.';
+            error.classList.remove('hidden');
+        }
     },
 
     // Load groove state from a plain data object (used by openFromFile)

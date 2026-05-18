@@ -774,6 +774,72 @@ body {
     color: white;
 }
 
+/* Open Text Modal */
+.open-text-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    padding: 20px;
+}
+
+.open-text-modal.hidden {
+    display: none !important;
+}
+
+.open-text-dialog {
+    background: var(--surface-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 24px;
+    width: 100%;
+    max-width: 520px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.open-text-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-color);
+    margin: 0;
+}
+
+.open-text-area {
+    width: 100%;
+    height: 220px;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: var(--dark-bg);
+    color: var(--text-color);
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-size: 12px;
+    resize: vertical;
+    outline: none;
+}
+
+.open-text-area:focus {
+    border-color: var(--primary-color);
+}
+
+.open-text-error {
+    color: var(--danger-color);
+    font-size: 13px;
+    margin: 0;
+}
+
+.open-text-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
 /* Scrollbar Styling */
 ::-webkit-scrollbar {
     width: 8px;

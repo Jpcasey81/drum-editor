@@ -102,17 +102,34 @@
                         <span class="icon">💾</span>
                         SAVE
                     </button>
-                    <button id="openFileBtn" class="btn btn-secondary">
-                        <span class="icon">📂</span>
-                        OPEN
-                    </button>
-                    <button id="printBtn" class="btn btn-primary">
+                    <button id="printBtn" class="btn btn-secondary">
                         <span class="icon">🖨</span>
                         PRINT
+                    </button>
+                    <button id="openFileBtn" class="btn btn-secondary">
+                        <span class="icon">📂</span>
+                        OPEN FILE
+                    </button>
+                    <button id="openTextBtn" class="btn btn-secondary">
+                        <span class="icon">📋</span>
+                        OPEN TEXT
                     </button>
                     <button id="clearBtn" class="btn btn-danger">Clear</button>
                 </div>
             </aside>
+        </div>
+    </div>
+
+    <!-- Open Text Modal -->
+    <div id="openTextModal" class="open-text-modal hidden" role="dialog" aria-modal="true" aria-labelledby="openTextTitle">
+        <div class="open-text-dialog">
+            <h2 id="openTextTitle" class="open-text-title">Paste Groove Text</h2>
+            <textarea id="openTextArea" class="open-text-area" placeholder="Paste saved groove JSON here…" spellcheck="false"></textarea>
+            <p id="openTextError" class="open-text-error hidden"></p>
+            <div class="open-text-actions">
+                <button id="openTextCancelBtn" class="btn">Cancel</button>
+                <button id="openTextLoadBtn" class="btn btn-primary">Load</button>
+            </div>
         </div>
     </div>
 
