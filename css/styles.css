@@ -263,16 +263,19 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); }
 .swing-row input[type=range] { accent-color: var(--accent); width: 80px; padding: 0; }
 .swing-val { font-size: 11px; color: var(--fg-2); min-width: 28px; }
 
+/* ── Inspector width token (overridden at narrow breakpoints) ─ */
+:root { --insp-width: 280px; }
+
 /* ── Workspace ────────────────────────────────────────────── */
 .workspace {
-  display: grid;
-  grid-template-columns: 1fr 280px;
+  display: flex;
   min-height: 0;
   overflow: hidden;
 }
 
 /* ── Main editing area ────────────────────────────────────── */
 .main {
+  flex: 1;
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -330,14 +333,15 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); }
   border-radius: var(--radius);
   overflow: hidden;
   flex-shrink: 0;
+  max-height: 140px;   /* enough for exactly 1 staff line */
 }
 
 .notation-view {
-  padding: 10px 14px;
+  padding: 8px 14px;
   background: oklch(0.94 0.005 80);
   color: #000;
   min-width: 100%;
-  overflow-y: auto;
+  overflow: hidden;    /* clip rather than scroll — 1 line fits */
 }
 
 .notation-view svg {
@@ -396,12 +400,63 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); }
   box-shadow: 0 0 0 2px oklch(from var(--accent) l c h / 0.12);
 }
 
-/* ── Inspector (right panel) ──────────────────────────────── */
+/* ── Inspector (right panel, collapsible) ─────────────────── */
 .inspector {
+  width: var(--insp-width);
+  flex-shrink: 0;
+  overflow: hidden;              /* clips content while animating */
+  transition: width .2s ease;
   background: var(--bg-2);
   border-left: 1px solid var(--line);
   display: flex;
   flex-direction: column;
+  min-height: 0;
+}
+
+.inspector.is-collapsed { width: 36px; }
+
+/* Topbar row — always 36px tall, content fixed-width so it doesn't reflow */
+.insp-topbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 7px;
+  border-bottom: 1px solid var(--line-soft);
+  flex-shrink: 0;
+  min-width: var(--insp-width);  /* keeps layout stable when collapsing */
+}
+
+.insp-toggle-btn {
+  width: 22px; height: 22px;
+  background: var(--bg-3);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--fg-2);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  display: grid; place-items: center;
+  flex-shrink: 0;
+  transition: background .12s, color .12s;
+  font-family: inherit;
+}
+.insp-toggle-btn:hover { background: var(--bg-4); color: var(--fg); }
+
+.insp-topbar-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--fg-3);
+  white-space: nowrap;
+}
+
+/* Scrollable body — fixed width so content doesn't reflow when collapsing */
+.insp-body {
+  min-width: var(--insp-width);
+  display: flex;
+  flex-direction: column;
+  flex: 1;
   min-height: 0;
   overflow-y: auto;
 }
@@ -651,7 +706,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); }
 
 /* Narrow desktop / large tablet */
 @media (max-width: 1100px) {
-  .workspace { grid-template-columns: 1fr 220px; }
+  :root { --insp-width: 220px; }
   .brand-title { width: 160px; }
 }
 
@@ -668,11 +723,10 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); }
 
   .transport-fields { gap: 10px; }
 
-  .workspace { grid-template-columns: 1fr; }
-  .inspector  { display: none; }
+  .inspector { display: none; }
 }
 
-/* iPad portrait: side-by-side, compact transport */
+/* iPad portrait: compact transport */
 @media (min-width: 641px) and (max-width: 1100px) and (orientation: portrait) {
   .app { grid-template-rows: 48px auto 1fr; }
 
@@ -684,15 +738,16 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); }
   }
 
   .transport-fields { gap: 10px; }
-  .workspace { grid-template-columns: 1fr 220px; }
 }
 
-/* iPad / small screen landscape: tighten spacing */
+/* iPad / small screen landscape: tighten spacing, shrink notation further */
 @media (orientation: landscape) and (max-height: 900px) and (min-width: 768px) {
-  .topbar  { height: 40px; }
-  .app { grid-template-rows: 40px 56px 1fr; }
+  .topbar { height: 40px; }
+  .app    { grid-template-rows: 40px 56px 1fr; }
+  .groove-info { max-height: 110px; }  /* even tighter on landscape */
 
   .main { padding: 8px 12px; gap: 8px; }
+  .insp-topbar { padding: 5px 7px; }
   .insp-section { padding: 10px 12px; gap: 8px; }
   .insp-actions { padding: 10px 12px; gap: 6px; }
 }

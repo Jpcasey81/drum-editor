@@ -162,34 +162,40 @@
             </main>
 
             <!-- Inspector / Right Panel -->
-            <aside class="inspector">
-                <div class="insp-section">
-                    <h3>Groove</h3>
-                    <label class="field">
-                        <span class="field-label">Author</span>
-                        <div class="field-control">
-                            <input type="text" id="authorInput" placeholder="Your name">
-                        </div>
-                    </label>
-                    <label class="field">
-                        <span class="field-label">Comment</span>
-                        <div class="field-control">
-                            <input type="text" id="commentInput" placeholder="Add a comment">
-                        </div>
-                    </label>
+            <aside class="inspector" id="inspector">
+                <div class="insp-topbar">
+                    <button class="insp-toggle-btn" id="inspectorToggleBtn" title="Collapse panel">&#8250;</button>
+                    <span class="insp-topbar-label">Panel</span>
                 </div>
+                <div class="insp-body">
+                    <div class="insp-section">
+                        <h3>Groove</h3>
+                        <label class="field">
+                            <span class="field-label">Author</span>
+                            <div class="field-control">
+                                <input type="text" id="authorInput" placeholder="Your name">
+                            </div>
+                        </label>
+                        <label class="field">
+                            <span class="field-label">Comment</span>
+                            <div class="field-control">
+                                <input type="text" id="commentInput" placeholder="Add a comment">
+                            </div>
+                        </label>
+                    </div>
 
-                <div class="insp-actions">
-                    <button id="saveFileBtn" class="btn-primary">
-                        <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5">
-                            <path d="M3 3h7l3 3v7H3z"/><path d="M5 3v4h6V3"/><rect x="5" y="9" width="6" height="4"/>
-                        </svg>
-                        Save
-                    </button>
-                    <button id="openFileBtn" class="btn-ghost">Open</button>
-                    <button id="printBtn" class="btn-ghost">Print</button>
-                    <button id="openTextBtn" class="btn-ghost insp-full">Paste JSON</button>
-                    <button id="clearBtn" class="btn-danger insp-full">Clear</button>
+                    <div class="insp-actions">
+                        <button id="saveFileBtn" class="btn-primary">
+                            <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M3 3h7l3 3v7H3z"/><path d="M5 3v4h6V3"/><rect x="5" y="9" width="6" height="4"/>
+                            </svg>
+                            Save
+                        </button>
+                        <button id="openFileBtn" class="btn-ghost">Open</button>
+                        <button id="printBtn" class="btn-ghost">Print</button>
+                        <button id="openTextBtn" class="btn-ghost insp-full">Paste JSON</button>
+                        <button id="clearBtn" class="btn-danger insp-full">Clear</button>
+                    </div>
                 </div>
             </aside>
 
@@ -226,6 +232,32 @@
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js');
         }
+    </script>
+
+    <script>
+        // Inspector collapse / expand toggle
+        (function () {
+            var btn      = document.getElementById('inspectorToggleBtn');
+            var inspector = document.getElementById('inspector');
+            if (!btn || !inspector) return;
+
+            function setCollapsed(collapsed) {
+                inspector.classList.toggle('is-collapsed', collapsed);
+                // ‹ when expanded (points left = collapse), › when collapsed (points right = expand)
+                btn.textContent = collapsed ? '›' : '‹';
+                btn.title = collapsed ? 'Expand panel' : 'Collapse panel';
+                try { localStorage.setItem('inspectorCollapsed', collapsed ? '1' : '0'); } catch (e) {}
+            }
+
+            btn.addEventListener('click', function () {
+                setCollapsed(!inspector.classList.contains('is-collapsed'));
+            });
+
+            // Restore saved state
+            try {
+                if (localStorage.getItem('inspectorCollapsed') === '1') setCollapsed(true);
+            } catch (e) {}
+        })();
     </script>
 </body>
 </html>
