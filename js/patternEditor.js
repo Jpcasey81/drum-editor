@@ -128,23 +128,85 @@ const GroovePatternEditor = {
         scrollContainer.onscroll = applyLabelOffset;
     },
 
-    // Render the pattern name label above the grid (read-only; editing via HTML tabs).
+    // Render measure name label(s) and the + / − bar button.
     renderMeasureHeaders: function(wrapper, groove, layout) {
         const { gridStartX, cellWidth, cellGap, beatGap, stepsPerBeat, stepsPerMeasure } = layout;
-        const x   = this.getCellX(0, gridStartX, cellWidth, cellGap, beatGap, stepsPerBeat);
-        const endX = this.getCellX(stepsPerMeasure - 1, gridStartX, cellWidth, cellGap, beatGap, stepsPerBeat) + cellWidth;
-
-        const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        label.setAttribute('x', String(x + (endX - x) / 2));
-        label.setAttribute('y', '15');
-        label.setAttribute('text-anchor', 'middle');
-        label.setAttribute('dominant-baseline', 'central');
-        label.setAttribute('font-size', '11');
-        label.setAttribute('fill', '#a09080');
-        label.setAttribute('pointer-events', 'none');
         const activePat = this.patterns[this.activePatternIndex];
-        label.textContent = activePat ? activePat.name : (groove.measureText[0] || 'M1');
-        wrapper.appendChild(label);
+        const patMeasures = (activePat && activePat.measures) || 1;
+        const ns = 'http://www.w3.org/2000/svg';
+
+        // Label above each measure
+        for (let m = 0; m < patMeasures; m++) {
+            const startStep = m * stepsPerMeasure;
+            const endStep   = startStep + stepsPerMeasure - 1;
+            const x    = this.getCellX(startStep, gridStartX, cellWidth, cellGap, beatGap, stepsPerBeat);
+            const endX = this.getCellX(endStep,   gridStartX, cellWidth, cellGap, beatGap, stepsPerBeat) + cellWidth;
+
+            const label = document.createElementNS(ns, 'text');
+            label.setAttribute('x', String(x + (endX - x) / 2));
+            label.setAttribute('y', '15');
+            label.setAttribute('text-anchor', 'middle');
+            label.setAttribute('dominant-baseline', 'central');
+            label.setAttribute('font-size', '11');
+            label.setAttribute('fill', '#a09080');
+            label.setAttribute('pointer-events', 'none');
+            label.textContent = m === 0
+                ? (activePat ? activePat.name : (groove.measureText[0] || 'M1'))
+                : 'bar 2';
+            wrapper.appendChild(label);
+        }
+
+        // + or − button at the right edge of the grid
+        const lastStep = patMeasures * stepsPerMeasure - 1;
+        const lastCellRight = this.getCellX(lastStep, gridStartX, cellWidth, cellGap, beatGap, stepsPerBeat) + cellWidth;
+        const btnX    = lastCellRight + beatGap + 4;
+        const btnY    = 3;
+        const btnSize = 24;
+
+        const makeBtn = (symbol, fillIdle, fillHover, stroke, onClick) => {
+            const g = document.createElementNS(ns, 'g');
+            g.style.cursor = 'pointer';
+
+            const rect = document.createElementNS(ns, 'rect');
+            rect.setAttribute('x', String(btnX));
+            rect.setAttribute('y', String(btnY));
+            rect.setAttribute('width',  String(btnSize));
+            rect.setAttribute('height', String(btnSize));
+            rect.setAttribute('rx', '5');
+            rect.setAttribute('fill', fillIdle);
+            rect.setAttribute('stroke', stroke);
+            rect.setAttribute('stroke-width', '1.2');
+
+            const txt = document.createElementNS(ns, 'text');
+            txt.setAttribute('x', String(btnX + btnSize / 2));
+            txt.setAttribute('y', String(btnY + btnSize / 2 + 1));
+            txt.setAttribute('text-anchor', 'middle');
+            txt.setAttribute('dominant-baseline', 'central');
+            txt.setAttribute('font-size', '18');
+            txt.setAttribute('fill', stroke);
+            txt.setAttribute('pointer-events', 'none');
+            txt.textContent = symbol;
+
+            g.appendChild(rect);
+            g.appendChild(txt);
+            g.addEventListener('click',      (e) => { e.stopPropagation(); onClick(); });
+            g.addEventListener('touchend',   (e) => { e.preventDefault(); e.stopPropagation(); onClick(); });
+            g.addEventListener('mouseenter', () => rect.setAttribute('fill', fillHover));
+            g.addEventListener('mouseleave', () => rect.setAttribute('fill', fillIdle));
+            wrapper.appendChild(g);
+        };
+
+        if (patMeasures < 2) {
+            makeBtn('+', '#1a2e1a', '#2a4a2a', '#66cc66',
+                () => this.addMeasureToPattern());
+        } else {
+            makeBtn('−', '#2e1a1a', '#4a2a2a', '#cc6666',
+                () => {
+                    if (confirm('Remove bar 2? Its notes will be lost.')) {
+                        this.removeMeasureFromPattern();
+                    }
+                });
+        }
     },
 
     // Draw the interactive groove grid
@@ -660,7 +722,7 @@ const GroovePatternEditor = {
 
         this.patterns = [];
         for (let i = 0; i < measures; i++) {
-            const pat = { name: names[i] || `M${i + 1}` };
+            const pat = { name: names[i] || `M${i + 1}`, measures: 1 };
             DrumUtils.drumLaneKeys.forEach((key) => {
                 const all = DrumUtils.grooveToArray(g[key]);
                 const slice = all.slice(i * spm, (i + 1) * spm);
@@ -674,20 +736,21 @@ const GroovePatternEditor = {
         this.renderPatternTabs();
     },
 
-    // Copy pattern[index] data into currentGroove (always 1 measure).
+    // Copy pattern[index] data into currentGroove (preserving its measure count).
     syncToCurrentGroove: function(index) {
         const p = this.patterns[index];
         const g = GrooveEditor.currentGroove;
         DrumUtils.drumLaneKeys.forEach((key) => { g[key] = p[key] || ''; });
-        g.measures = 1;
-        g.measureText = [p.name];
+        g.measures = p.measures || 1;
+        g.measureText = Array.from({ length: g.measures }, (_, i) => i === 0 ? p.name : '');
     },
 
-    // Write currentGroove lane data back into patterns[activePatternIndex].
+    // Write currentGroove lane data (and measure count) back into patterns[activePatternIndex].
     syncFromCurrentGroove: function() {
         const p = this.patterns[this.activePatternIndex];
         const g = GrooveEditor.currentGroove;
         DrumUtils.drumLaneKeys.forEach((key) => { p[key] = g[key] || ''; });
+        p.measures = g.measures || 1;
     },
 
     // Switch the active pattern, load it and re-render everything.
@@ -698,11 +761,11 @@ const GroovePatternEditor = {
         GrooveEditor.render();
     },
 
-    // Add a new blank pattern and switch to it.
+    // Add a new blank 1-bar pattern and switch to it.
     addPattern: function() {
         const n = this.patterns.length + 1;
         const g = GrooveEditor.currentGroove;
-        const pat = { name: `M${n}` };
+        const pat = { name: `M${n}`, measures: 1 };
         DrumUtils.drumLaneKeys.forEach((key) => {
             pat[key] = DrumUtils.normalizeGroovePattern('', 1, g.division, g.timeSignature, '-');
         });
@@ -731,14 +794,50 @@ const GroovePatternEditor = {
         this.renderPatternTabs();
     },
 
+    // Extend the active pattern from 1 bar to 2 bars.
+    addMeasureToPattern: function() {
+        const p = this.patterns[this.activePatternIndex];
+        if ((p.measures || 1) >= 2) return;
+        const g = GrooveEditor.currentGroove;
+        const spm = DrumUtils.calculateStepsPerMeasure(g.timeSignature, g.division);
+        const empty = Array(spm).fill('-');
+        DrumUtils.drumLaneKeys.forEach((key) => {
+            const current = DrumUtils.grooveToArray(g[key]);
+            g[key] = DrumUtils.arrayToGroove(current.concat(empty), 2, g.division, g.timeSignature);
+        });
+        g.measures = 2;
+        g.measureText = [p.name, ''];
+        p.measures = 2;
+        this.syncFromCurrentGroove();
+        GrooveEditor.render();
+    },
+
+    // Trim the active pattern back to 1 bar (discards bar 2 content).
+    removeMeasureFromPattern: function() {
+        const p = this.patterns[this.activePatternIndex];
+        if ((p.measures || 1) <= 1) return;
+        const g = GrooveEditor.currentGroove;
+        const spm = DrumUtils.calculateStepsPerMeasure(g.timeSignature, g.division);
+        DrumUtils.drumLaneKeys.forEach((key) => {
+            const slice = DrumUtils.grooveToArray(g[key]).slice(0, spm);
+            g[key] = DrumUtils.arrayToGroove(slice, 1, g.division, g.timeSignature);
+        });
+        g.measures = 1;
+        g.measureText = [p.name];
+        p.measures = 1;
+        this.syncFromCurrentGroove();
+        GrooveEditor.render();
+    },
+
     // Resize every pattern's lane data when division or time signature changes.
     resizeAllPatterns: function(prevDivision, prevTimeSig, nextDivision, nextTimeSig) {
         this.patterns.forEach((pat, i) => {
             if (i === this.activePatternIndex) return; // currentGroove already resized
+            const m = pat.measures || 1;
             DrumUtils.drumLaneKeys.forEach((key) => {
                 pat[key] = DrumUtils.resizeGroovePattern(
-                    pat[key], 1, prevDivision, prevTimeSig,
-                    1, nextDivision, nextTimeSig, '-'
+                    pat[key], m, prevDivision, prevTimeSig,
+                    m, nextDivision, nextTimeSig, '-'
                 );
             });
         });

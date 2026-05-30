@@ -645,7 +645,7 @@ const GrooveEditor = {
             if (Array.isArray(data.patterns) && data.patterns.length > 0) {
                 // New format: explicit patterns array
                 GroovePatternEditor.patterns = data.patterns.map((p, i) => {
-                    const entry = { name: p.name || `M${i + 1}` };
+                    const entry = { name: p.name || `M${i + 1}`, measures: p.measures || 1 };
                     DrumUtils.drumLaneKeys.forEach((k) => { entry[k] = p[k] || ''; });
                     return entry;
                 });
