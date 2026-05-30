@@ -75,6 +75,15 @@ const GrooveEditor = {
         this.currentGroove.division = nextSettings.division;
         this.currentGroove.timeSignature = nextSettings.timeSignature;
         this.currentGroove.measureText = DrumUtils.normalizeMeasureText(this.currentGroove.measureText, nextSettings.measures);
+
+        // Resize all other patterns to match the new division / time signature
+        if (typeof GroovePatternEditor !== 'undefined') {
+            GroovePatternEditor.syncFromCurrentGroove();
+            GroovePatternEditor.resizeAllPatterns(
+                previous.division, previous.timeSignature,
+                nextSettings.division, nextSettings.timeSignature
+            );
+        }
     },
 
     // Insert a blank measure after the given index
@@ -276,6 +285,9 @@ const GrooveEditor = {
                 kick: ''
             };
             this.ensureGroovePatterns();
+            if (typeof GroovePatternEditor !== 'undefined') {
+                GroovePatternEditor.initPatterns();
+            }
             this.updateUI();
             this.render();
             this.updateURL();
@@ -539,7 +551,10 @@ const GrooveEditor = {
 
     // Save groove to a .drumgroove file
     saveToFile: function() {
-        const data = Object.assign({ version: 1 }, this.currentGroove);
+        const patterns = (typeof GroovePatternEditor !== 'undefined' && GroovePatternEditor.patterns.length)
+            ? GroovePatternEditor.patterns
+            : null;
+        const data = Object.assign({ version: 2 }, this.currentGroove, { patterns });
         const json = JSON.stringify(data, null, 2);
         const safeName = (this.currentGroove.title || 'untitled-groove')
             .replace(/[^a-z0-9\-_ ]/gi, '')
@@ -625,6 +640,24 @@ const GrooveEditor = {
             kick: data.kick || ''
         };
         Object.assign(this.currentGroove, groove);
+
+        if (typeof GroovePatternEditor !== 'undefined') {
+            if (Array.isArray(data.patterns) && data.patterns.length > 0) {
+                // New format: explicit patterns array
+                GroovePatternEditor.patterns = data.patterns.map((p, i) => {
+                    const entry = { name: p.name || `M${i + 1}` };
+                    DrumUtils.drumLaneKeys.forEach((k) => { entry[k] = p[k] || ''; });
+                    return entry;
+                });
+                GroovePatternEditor.activePatternIndex = 0;
+                GroovePatternEditor.syncToCurrentGroove(0);
+                GroovePatternEditor.renderPatternTabs();
+            } else {
+                // Old format: split multi-measure groove into individual patterns
+                GroovePatternEditor.initPatterns();
+            }
+        }
+
         this.ensureGroovePatterns();
         this.updateUI();
         this.render();

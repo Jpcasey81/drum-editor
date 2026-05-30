@@ -9,17 +9,19 @@ const GroovePatternEditor = {
     activePlaybackCells: [],
     selectedNoteType: 'normal',
     isDragging: false,
-    dragMode: null,        // 'paint' | 'erase'
-    lastDragCellKey: null, // '<laneKey>-<index>' to skip re-painting same cell
+    dragMode: null,
+    lastDragCellKey: null,
+    patterns: [],
+    activePatternIndex: 0,
     drumColors: {
-        crash: '#F59E0B',
-        hihat: '#FF6B35',
-        ride:  '#06B6D4',
-        hitom: '#8B5CF6',
-        midtom: '#6366F1',
-        snare: '#004E89',
-        lowtom: '#10B981',
-        kick: '#2ECC71'
+        crash:  '#F59E0B',
+        hihat:  '#F97316',
+        ride:   '#22D3EE',
+        hitom:  '#A855F7',
+        midtom: '#818CF8',
+        snare:  '#F97316',
+        lowtom: '#34D399',
+        kick:   '#FB923C'
     },
     drumLaneConfig: [
         { name: 'Crash',       shortLabel: 'C',  key: 'crash',  laneKey: 'crash',   hitChar: 'x' },
@@ -36,7 +38,7 @@ const GroovePatternEditor = {
 
     noteTypeOptions: {
         crash:   [{ label: 'Normal', char: 'x' }, { label: 'Accent', char: 'X' }],
-        hihat:   [{ label: 'Normal', char: 'x' }, { label: 'Accent', char: 'X' }, { label: 'Ghost', char: 'g' }],
+        hihat:   [{ label: 'Normal', char: 'x' }, { label: 'Accent', char: 'X' }],
         openhat: [],
         ride:    [{ label: 'Normal', char: 'x' }, { label: 'Accent', char: 'X' }],
         hitom:   [{ label: 'Normal', char: 'o' }, { label: 'Accent', char: 'O' }, { label: 'Ghost', char: 'g' }, { label: 'Flam', char: 'f' }],
@@ -59,6 +61,7 @@ const GroovePatternEditor = {
     },
 
     init: function() {
+        this.initPatterns();
         this.render();
         this.bindEvents();
     },
@@ -90,8 +93,14 @@ const GroovePatternEditor = {
         const target = labelMap[noteType];
         const match = options.find((o) => o.label === target);
         if (match) return match.char;
-        const normal = options.find((o) => o.label === 'Normal');
-        return normal ? normal.char : null;
+        // Only fall back to Normal when Normal is explicitly selected.
+        // Any other unsupported type (Ghost, Flam, Rim Click on an incompatible
+        // lane) returns null so paintCell does nothing — no accidental erase.
+        if (noteType === 'normal') {
+            const normal = options.find((o) => o.label === 'Normal');
+            return normal ? normal.char : null;
+        }
+        return null;
     },
 
     // Render the interactive groove grid
@@ -119,97 +128,23 @@ const GroovePatternEditor = {
         scrollContainer.onscroll = applyLabelOffset;
     },
 
-    // Render the header strip above each measure: text label, + and × buttons
+    // Render the pattern name label above the grid (read-only; editing via HTML tabs).
     renderMeasureHeaders: function(wrapper, groove, layout) {
         const { gridStartX, cellWidth, cellGap, beatGap, stepsPerBeat, stepsPerMeasure } = layout;
-        const measures = groove.measures;
-        const measureText = DrumUtils.normalizeMeasureText(groove.measureText, measures);
+        const x   = this.getCellX(0, gridStartX, cellWidth, cellGap, beatGap, stepsPerBeat);
+        const endX = this.getCellX(stepsPerMeasure - 1, gridStartX, cellWidth, cellGap, beatGap, stepsPerBeat) + cellWidth;
 
-        const makeSvgBtn = (x, y, w, h, label, fillColor, textColor, onClick) => {
-            const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-            g.style.cursor = 'pointer';
-
-            const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-            rect.setAttribute('x', String(x));
-            rect.setAttribute('y', String(y));
-            rect.setAttribute('width', String(w));
-            rect.setAttribute('height', String(h));
-            rect.setAttribute('rx', '3');
-            rect.setAttribute('fill', fillColor);
-            rect.setAttribute('stroke', textColor);
-            rect.setAttribute('stroke-width', '0.8');
-            rect.setAttribute('opacity', '0.75');
-
-            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            text.setAttribute('x', String(x + w / 2));
-            text.setAttribute('y', String(y + h / 2));
-            text.setAttribute('text-anchor', 'middle');
-            text.setAttribute('dominant-baseline', 'central');
-            text.setAttribute('font-size', '10');
-            text.setAttribute('fill', textColor);
-            text.setAttribute('pointer-events', 'none');
-            text.textContent = label;
-
-            g.appendChild(rect);
-            g.appendChild(text);
-
-            g.addEventListener('click', (e) => { e.stopPropagation(); onClick(); });
-            g.addEventListener('touchend', (e) => { e.preventDefault(); e.stopPropagation(); onClick(); });
-            g.addEventListener('mouseenter', () => rect.setAttribute('opacity', '1'));
-            g.addEventListener('mouseleave', () => rect.setAttribute('opacity', '0.75'));
-
-            return g;
-        };
-
-        for (let measureIndex = 0; measureIndex < measures; measureIndex++) {
-            const startStep = measureIndex * stepsPerMeasure;
-            const endStep = startStep + stepsPerMeasure - 1;
-            const x = this.getCellX(startStep, gridStartX, cellWidth, cellGap, beatGap, stepsPerBeat);
-            const endX = this.getCellX(endStep, gridStartX, cellWidth, cellGap, beatGap, stepsPerBeat) + cellWidth;
-            const measureWidth = endX - x;
-
-            const btnColumnW = measures > 1 ? 20 : 0;
-            const inputWidth = Math.max(20, measureWidth - btnColumnW - 2);
-
-            const foreignObject = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
-            foreignObject.setAttribute('x', String(x));
-            foreignObject.setAttribute('y', '4');
-            foreignObject.setAttribute('width', String(inputWidth));
-            foreignObject.setAttribute('height', '22');
-
-            const htmlWrapper = document.createElementNS('http://www.w3.org/1999/xhtml', 'div');
-            htmlWrapper.className = 'measure-text-input-wrap';
-
-            const input = document.createElementNS('http://www.w3.org/1999/xhtml', 'input');
-            input.type = 'text';
-            input.className = 'measure-text-input';
-            input.value = measureText[measureIndex] || '';
-            input.placeholder = `M${measureIndex + 1}`;
-            input.maxLength = 20;
-            input.setAttribute('data-measure-index', String(measureIndex));
-            input.addEventListener('input', (event) => {
-                GrooveEditor.updateMeasureText(measureIndex, event.target.value);
-            });
-
-            htmlWrapper.appendChild(input);
-            foreignObject.appendChild(htmlWrapper);
-            wrapper.appendChild(foreignObject);
-
-            if (measures > 1) {
-                const delX = endX - 18;
-                const del = makeSvgBtn(delX, 4, 16, 16, '×', '#3a1a1a', '#cc6666',
-                    () => GrooveEditor.deleteMeasure(measureIndex));
-                wrapper.appendChild(del);
-            }
-
-            const isLast = measureIndex === measures - 1;
-            const barX = isLast
-                ? endX + beatGap
-                : this.getCellX((measureIndex + 1) * stepsPerMeasure, gridStartX, cellWidth, cellGap, beatGap, stepsPerBeat) - beatGap / 2;
-            const add = makeSvgBtn(Math.round(barX - 8), 26, 16, 14, '+', '#1a2e1a', '#66cc66',
-                () => GrooveEditor.addMeasure(measureIndex));
-            wrapper.appendChild(add);
-        }
+        const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        label.setAttribute('x', String(x + (endX - x) / 2));
+        label.setAttribute('y', '15');
+        label.setAttribute('text-anchor', 'middle');
+        label.setAttribute('dominant-baseline', 'central');
+        label.setAttribute('font-size', '11');
+        label.setAttribute('fill', '#a09080');
+        label.setAttribute('pointer-events', 'none');
+        const activePat = this.patterns[this.activePatternIndex];
+        label.textContent = activePat ? activePat.name : (groove.measureText[0] || 'M1');
+        wrapper.appendChild(label);
     },
 
     // Draw the interactive groove grid
@@ -280,7 +215,7 @@ const GroovePatternEditor = {
             labelBg.setAttribute('y', drum.y);
             labelBg.setAttribute('width', String(labelWidth + 8));
             labelBg.setAttribute('height', String(trackHeight));
-            labelBg.setAttribute('fill', '#1e1e1e');
+            labelBg.setAttribute('fill', '#2a2018');
             labelBg.setAttribute('rx', '0');
             labelGroup.appendChild(labelBg);
 
@@ -290,7 +225,7 @@ const GroovePatternEditor = {
             label.setAttribute('text-anchor', 'end');
             label.setAttribute('dominant-baseline', 'central');
             label.setAttribute('font-size', '12');
-            label.setAttribute('fill', '#cccccc');
+            label.setAttribute('fill', '#f0ebe5');
             label.setAttribute('class', 'drum-label');
             label.setAttribute('data-drum', drum.key);
             label.setAttribute('cursor', 'pointer');
@@ -320,9 +255,9 @@ const GroovePatternEditor = {
                 cellBg.setAttribute('width', cellWidth);
                 cellBg.setAttribute('height', cellHeight);
                 const isDownbeat = (index % stepsPerBeat) === 0;
-                cellBg.setAttribute('fill', isDownbeat ? '#2e2e2e' : '#252525');
+                cellBg.setAttribute('fill', isDownbeat ? '#302a22' : '#261f18');
                 cellBg.setAttribute('data-downbeat', isDownbeat ? '1' : '0');
-                cellBg.setAttribute('stroke', '#3a3a3a');
+                cellBg.setAttribute('stroke', '#3d3228');
                 cellBg.setAttribute('stroke-width', '1');
                 cellBg.setAttribute('rx', '2');
                 cellBg.setAttribute('data-display-hit', displayHit);
@@ -356,7 +291,7 @@ const GroovePatternEditor = {
                         return;
                     }
                     if (index !== this.playbackStepIndex && (displayHit === '-' || displayHit === '')) {
-                        cellBg.setAttribute('fill', '#3d3d3d');
+                        cellBg.setAttribute('fill', '#403830');
                     }
                 });
 
@@ -386,7 +321,7 @@ const GroovePatternEditor = {
                     line.setAttribute('y1', drum.y - 3);
                     line.setAttribute('x2', lineX);
                     line.setAttribute('y2', drum.y + cellHeight + 7);
-                    line.setAttribute('stroke', '#666');
+                    line.setAttribute('stroke', '#4a4038');
                     line.setAttribute('stroke-width', '2');
                     wrapper.appendChild(line);
                 } else if (this.isBeatBoundary(index, stepsPerBeat)) {
@@ -396,7 +331,7 @@ const GroovePatternEditor = {
                     line.setAttribute('y1', drum.y + 1);
                     line.setAttribute('x2', lineX);
                     line.setAttribute('y2', drum.y + cellHeight - 1);
-                    line.setAttribute('stroke', '#484848');
+                    line.setAttribute('stroke', '#3a2e24');
                     line.setAttribute('stroke-width', '1');
                     wrapper.appendChild(line);
                 }
@@ -410,7 +345,7 @@ const GroovePatternEditor = {
         labelMask.setAttribute('y', '0');
         labelMask.setAttribute('width', String(gridStartX));
         labelMask.setAttribute('height', String(totalHeight + 20));
-        labelMask.setAttribute('fill', '#1a1a1a');
+        labelMask.setAttribute('fill', '#1e1a12');
         labelsOverlay.insertBefore(labelMask, labelsOverlay.firstChild);
         wrapper.appendChild(labelsOverlay);
 
@@ -424,7 +359,7 @@ const GroovePatternEditor = {
 
     // Determine if a mousedown/touchstart should start an erase drag
     _isEraseStart: function(current, laneKey, laneType) {
-        if (laneType === 'hihat-open') return current === '+';
+        if (laneType === 'hihat-open') return this.selectedNoteType === 'normal' && current === '+';
         if (laneType === 'kick')       return current === 'o' || current === 'b';
         if (laneType === 'pedal')      return current === 'p' || current === 'b';
         const targetChar = this.resolveNoteChar(this.selectedNoteType, laneKey);
@@ -454,6 +389,7 @@ const GroovePatternEditor = {
         } else {
             // paint mode
             if (laneType === 'hihat-open') {
+                if (this.selectedNoteType !== 'normal') return;
                 if (current === '+') return;
                 targetChar = '+';
             } else if (laneType === 'kick') {
@@ -470,6 +406,7 @@ const GroovePatternEditor = {
 
         pattern[hitIndex] = targetChar;
         groove[drumKey] = DrumUtils.arrayToGroove(pattern, groove.measures, groove.division, groove.timeSignature);
+        this.syncFromCurrentGroove();
         GrooveEditor.render();
         GrooveEditor.updateURL();
     },
@@ -488,13 +425,13 @@ const GroovePatternEditor = {
     },
 
     isOutlineHit: function(hitChar) {
-        return hitChar === 'g' || hitChar === '+' || hitChar === 'p';
+        return hitChar === 'g';
     },
 
     getDisplayHit: function(rawHit, laneType) {
         if (!rawHit || rawHit === '-' || rawHit === '') return '-';
         switch (laneType) {
-            case 'hihat-closed': return (rawHit === 'x' || rawHit === 'X' || rawHit === 'g') ? rawHit : '-';
+            case 'hihat-closed': return (rawHit === 'x' || rawHit === 'X') ? rawHit : '-';
             case 'hihat-open':   return rawHit === '+' ? '+' : '-';
             case 'kick':         return (rawHit === 'o' || rawHit === 'b') ? 'o' : '-';
             case 'pedal':        return (rawHit === 'p' || rawHit === 'b') ? 'p' : '-';
@@ -539,54 +476,106 @@ const GroovePatternEditor = {
                 addText('>');
                 break;
             case 'g': {
-                const r = Math.max(3, cellHeight * 0.28);
-                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-                circle.setAttribute('cx', String(cx));
-                circle.setAttribute('cy', String(midY));
-                circle.setAttribute('r', String(r));
-                circle.setAttribute('fill', 'none');
-                circle.setAttribute('stroke', color);
-                circle.setAttribute('stroke-width', '1.5');
-                circle.setAttribute('pointer-events', 'none');
-                circle.setAttribute('class', 'drum-hit');
-                group.appendChild(circle);
+                const gt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                gt.setAttribute('x', String(cx));
+                gt.setAttribute('y', String(midY));
+                gt.setAttribute('text-anchor', 'middle');
+                gt.setAttribute('dominant-baseline', 'central');
+                gt.setAttribute('font-size', String(fontSize));
+                gt.setAttribute('font-weight', 'bold');
+                gt.setAttribute('fill', color);
+                gt.setAttribute('pointer-events', 'none');
+                gt.setAttribute('class', 'drum-hit');
+                gt.textContent = 'o';
+                group.appendChild(gt);
                 break;
             }
-            case 'f':
+            case 'f': {
                 fillCell();
-                addText('♩');
+                const fns = 'http://www.w3.org/2000/svg';
+                // Scale based only on cellHeight — cellWidth is not in scope here
+                const sc = Math.max(0.5, cellHeight / 24);
+                const bY = midY + 2.5 * sc;   // notehead baseline
+                const gx = cx - 4 * sc;        // grace note X
+                const mx = cx + 3 * sc;        // main note X
+
+                // Slur arc
+                const sl = document.createElementNS(fns, 'path');
+                sl.setAttribute('d', `M${gx} ${midY - sc} Q${cx} ${midY - 5 * sc} ${mx} ${midY - sc}`);
+                sl.setAttribute('stroke', 'white');
+                sl.setAttribute('stroke-width', String(Math.max(0.5, 0.7 * sc)));
+                sl.setAttribute('fill', 'none');
+                sl.setAttribute('stroke-linecap', 'round');
+                sl.setAttribute('pointer-events', 'none');
+                group.appendChild(sl);
+
+                // Grace notehead (small)
+                const gh = document.createElementNS(fns, 'ellipse');
+                gh.setAttribute('cx', String(gx));
+                gh.setAttribute('cy', String(bY));
+                gh.setAttribute('rx', String(1.6 * sc));
+                gh.setAttribute('ry', String(1.1 * sc));
+                gh.setAttribute('transform', `rotate(-20 ${gx} ${bY})`);
+                gh.setAttribute('fill', 'white');
+                gh.setAttribute('pointer-events', 'none');
+                group.appendChild(gh);
+
+                // Grace stem
+                const gst = document.createElementNS(fns, 'line');
+                gst.setAttribute('x1', String(gx + 1.4 * sc));
+                gst.setAttribute('y1', String(bY - sc));
+                gst.setAttribute('x2', String(gx + 1.4 * sc));
+                gst.setAttribute('y2', String(bY - 6 * sc));
+                gst.setAttribute('stroke', 'white');
+                gst.setAttribute('stroke-width', String(Math.max(0.5, 0.7 * sc)));
+                gst.setAttribute('pointer-events', 'none');
+                group.appendChild(gst);
+
+                // Grace flag
+                const gfl = document.createElementNS(fns, 'line');
+                gfl.setAttribute('x1', String(gx + 1.4 * sc));
+                gfl.setAttribute('y1', String(bY - 5 * sc));
+                gfl.setAttribute('x2', String(gx + 4 * sc));
+                gfl.setAttribute('y2', String(bY - 3 * sc));
+                gfl.setAttribute('stroke', 'white');
+                gfl.setAttribute('stroke-width', String(Math.max(0.5, 0.7 * sc)));
+                gfl.setAttribute('pointer-events', 'none');
+                group.appendChild(gfl);
+
+                // Main notehead (larger)
+                const mh = document.createElementNS(fns, 'ellipse');
+                mh.setAttribute('cx', String(mx));
+                mh.setAttribute('cy', String(bY));
+                mh.setAttribute('rx', String(2.4 * sc));
+                mh.setAttribute('ry', String(1.7 * sc));
+                mh.setAttribute('transform', `rotate(-20 ${mx} ${bY})`);
+                mh.setAttribute('fill', 'white');
+                mh.setAttribute('pointer-events', 'none');
+                group.appendChild(mh);
+
+                // Main stem
+                const mst = document.createElementNS(fns, 'line');
+                mst.setAttribute('x1', String(mx + 2.2 * sc));
+                mst.setAttribute('y1', String(bY - 1.5 * sc));
+                mst.setAttribute('x2', String(mx + 2.2 * sc));
+                mst.setAttribute('y2', String(bY - 7.5 * sc));
+                mst.setAttribute('stroke', 'white');
+                mst.setAttribute('stroke-width', String(Math.max(0.6, sc)));
+                mst.setAttribute('pointer-events', 'none');
+                group.appendChild(mst);
+
                 break;
+            }
             case 'r':
                 fillCell();
-                addText('×');
+                addText('x');
                 break;
-            case '+': {
-                const r = Math.max(3, cellHeight * 0.28);
-                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-                circle.setAttribute('cx', String(cx));
-                circle.setAttribute('cy', String(midY));
-                circle.setAttribute('r', String(r));
-                circle.setAttribute('fill', 'none');
-                circle.setAttribute('stroke', color);
-                circle.setAttribute('stroke-width', '1.5');
-                circle.setAttribute('stroke-dasharray', '2,1');
-                circle.setAttribute('pointer-events', 'none');
-                circle.setAttribute('class', 'drum-hit');
-                group.appendChild(circle);
+            case '+':
+                fillCell();
                 break;
-            }
-            case 'p': {
-                const d = Math.max(3, cellHeight * 0.3);
-                const diamond = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-                diamond.setAttribute('points', `${cx},${midY - d} ${cx + d},${midY} ${cx},${midY + d} ${cx - d},${midY}`);
-                diamond.setAttribute('fill', 'none');
-                diamond.setAttribute('stroke', color);
-                diamond.setAttribute('stroke-width', '1.5');
-                diamond.setAttribute('pointer-events', 'none');
-                diamond.setAttribute('class', 'drum-hit');
-                group.appendChild(diamond);
+            case 'p':
+                fillCell();
                 break;
-            }
             case 'b':
                 fillCell();
                 // eslint-disable-next-line no-case-declarations
@@ -659,6 +648,175 @@ const GroovePatternEditor = {
         document.addEventListener('touchcancel', endTouchDrag);
     },
 
+    // ── Pattern management ─────────────────────────────────────
+
+    // Build patterns[] from whatever is currently in currentGroove.
+    // Handles both old multi-measure files and fresh starts.
+    initPatterns: function() {
+        const g = GrooveEditor.currentGroove;
+        const measures = g.measures || 1;
+        const spm = DrumUtils.calculateStepsPerMeasure(g.timeSignature, g.division);
+        const names = DrumUtils.normalizeMeasureText(g.measureText, measures);
+
+        this.patterns = [];
+        for (let i = 0; i < measures; i++) {
+            const pat = { name: names[i] || `M${i + 1}` };
+            DrumUtils.drumLaneKeys.forEach((key) => {
+                const all = DrumUtils.grooveToArray(g[key]);
+                const slice = all.slice(i * spm, (i + 1) * spm);
+                pat[key] = DrumUtils.arrayToGroove(slice, 1, g.division, g.timeSignature);
+            });
+            this.patterns.push(pat);
+        }
+
+        this.activePatternIndex = 0;
+        this.syncToCurrentGroove(0);
+        this.renderPatternTabs();
+    },
+
+    // Copy pattern[index] data into currentGroove (always 1 measure).
+    syncToCurrentGroove: function(index) {
+        const p = this.patterns[index];
+        const g = GrooveEditor.currentGroove;
+        DrumUtils.drumLaneKeys.forEach((key) => { g[key] = p[key] || ''; });
+        g.measures = 1;
+        g.measureText = [p.name];
+    },
+
+    // Write currentGroove lane data back into patterns[activePatternIndex].
+    syncFromCurrentGroove: function() {
+        const p = this.patterns[this.activePatternIndex];
+        const g = GrooveEditor.currentGroove;
+        DrumUtils.drumLaneKeys.forEach((key) => { p[key] = g[key] || ''; });
+    },
+
+    // Switch the active pattern, load it and re-render everything.
+    setActivePattern: function(index) {
+        this.activePatternIndex = index;
+        this.syncToCurrentGroove(index);
+        this.renderPatternTabs();
+        GrooveEditor.render();
+    },
+
+    // Add a new blank pattern and switch to it.
+    addPattern: function() {
+        const n = this.patterns.length + 1;
+        const g = GrooveEditor.currentGroove;
+        const pat = { name: `M${n}` };
+        DrumUtils.drumLaneKeys.forEach((key) => {
+            pat[key] = DrumUtils.normalizeGroovePattern('', 1, g.division, g.timeSignature, '-');
+        });
+        this.patterns.push(pat);
+        this.setActivePattern(this.patterns.length - 1);
+    },
+
+    // Delete the pattern at index; refuse if only one remains.
+    deletePattern: function(index) {
+        if (this.patterns.length <= 1) return;
+        this.patterns.splice(index, 1);
+        const next = Math.min(this.activePatternIndex, this.patterns.length - 1);
+        this.activePatternIndex = next;
+        this.syncToCurrentGroove(next);
+        this.renderPatternTabs();
+        GrooveEditor.render();
+    },
+
+    // Save a new name for a pattern.
+    renamePattern: function(index, name) {
+        const trimmed = name.trim() || `M${index + 1}`;
+        this.patterns[index].name = trimmed;
+        if (index === this.activePatternIndex) {
+            GrooveEditor.currentGroove.measureText = [trimmed];
+        }
+        this.renderPatternTabs();
+    },
+
+    // Resize every pattern's lane data when division or time signature changes.
+    resizeAllPatterns: function(prevDivision, prevTimeSig, nextDivision, nextTimeSig) {
+        this.patterns.forEach((pat, i) => {
+            if (i === this.activePatternIndex) return; // currentGroove already resized
+            DrumUtils.drumLaneKeys.forEach((key) => {
+                pat[key] = DrumUtils.resizeGroovePattern(
+                    pat[key], 1, prevDivision, prevTimeSig,
+                    1, nextDivision, nextTimeSig, '-'
+                );
+            });
+        });
+    },
+
+    // Rebuild the pattern tab buttons from scratch.
+    renderPatternTabs: function() {
+        const container = document.getElementById('patternTabs');
+        if (!container) return;
+        container.innerHTML = '';
+
+        this.patterns.forEach((pat, i) => {
+            const tab = document.createElement('div');
+            tab.className = 'pattern-tab' + (i === this.activePatternIndex ? ' is-active' : '');
+
+            const nameEl = document.createElement('span');
+            nameEl.className = 'pattern-tab-name';
+            nameEl.textContent = pat.name;
+
+            nameEl.addEventListener('click', () => {
+                if (i === this.activePatternIndex) {
+                    this._startRenaming(tab, nameEl, i);
+                } else {
+                    this.setActivePattern(i);
+                }
+            });
+
+            tab.appendChild(nameEl);
+
+            if (this.patterns.length > 1) {
+                const del = document.createElement('button');
+                del.className = 'pattern-tab-del';
+                del.textContent = '×';
+                del.title = 'Delete pattern';
+                del.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (confirm(`Delete pattern "${pat.name}"?`)) {
+                        this.deletePattern(i);
+                    }
+                });
+                tab.appendChild(del);
+            }
+
+            container.appendChild(tab);
+        });
+
+        const addBtn = document.createElement('button');
+        addBtn.className = 'pattern-add';
+        addBtn.textContent = '+';
+        addBtn.title = 'Add pattern';
+        addBtn.addEventListener('click', () => this.addPattern());
+        container.appendChild(addBtn);
+    },
+
+    // Inline rename: replaces the name span with a text input.
+    _startRenaming: function(tab, nameEl, index) {
+        if (tab.querySelector('input.pattern-tab-input')) return;
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'pattern-tab-input';
+        input.value = this.patterns[index].name;
+        input.maxLength = 24;
+
+        const commit = () => { this.renamePattern(index, input.value); };
+        input.addEventListener('blur', commit);
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+            if (e.key === 'Escape') {
+                input.removeEventListener('blur', commit);
+                this.renderPatternTabs();
+            }
+        });
+
+        nameEl.replaceWith(input);
+        input.focus();
+        input.select();
+    },
+
     setEditMode: function(enabled) {
         this.editMode = enabled;
         this.render();
@@ -686,7 +844,7 @@ const GroovePatternEditor = {
     },
 
     applyPlaybackHighlight: function(cellBg, drumColor) {
-        cellBg.setAttribute('fill', '#3d3520');
+        cellBg.setAttribute('fill', '#4a3d1a');
         cellBg.setAttribute('stroke', drumColor);
         cellBg.setAttribute('stroke-width', '2');
     },
@@ -710,7 +868,7 @@ const GroovePatternEditor = {
             cellBg.setAttribute('stroke', drumColor);
             cellBg.setAttribute('stroke-width', '1');
         } else {
-            const baseFill = cellBg.getAttribute('data-downbeat') === '1' ? '#2e2e2e' : '#252525';
+            const baseFill = cellBg.getAttribute('data-downbeat') === '1' ? '#302a22' : '#261f18';
             cellBg.setAttribute('fill', baseFill);
             cellBg.setAttribute('stroke', '#3a3a3a');
             cellBg.setAttribute('stroke-width', '1');

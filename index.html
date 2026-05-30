@@ -7,34 +7,144 @@
 
     <!-- PWA / home screen -->
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#1e293b">
+    <meta name="theme-color" content="#2a1f0e">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Drum Editor">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
 
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
+
     <title>Drum Editor</title>
-    <link rel="stylesheet" href="css/styles.css?v=20260516-1">
+    <link rel="stylesheet" href="css/styles.css?v=20260529-1">
 </head>
 <body>
-    <div class="container">
-        <!-- Header -->
-        <header class="header">
-            <div class="header-left">
-                <h1>Drum Editor</h1>
+    <div class="app">
+
+        <!-- ── Top Bar ─────────────────────────────── -->
+        <header class="topbar">
+            <div class="brand">
+                <div class="brand-mark">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6">
+                        <ellipse cx="12" cy="6.5" rx="8" ry="3"/>
+                        <path d="M4 6.5v11c0 1.7 3.6 3 8 3s8-1.3 8-3v-11"/>
+                        <path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>
+                    </svg>
+                </div>
+                <input class="brand-title" id="titleInput" placeholder="Untitled groove" spellcheck="false">
+            </div>
+            <nav class="topnav">
+                <button class="nav-btn">File</button>
+                <button class="nav-btn">Edit</button>
+                <button class="nav-btn">View</button>
+                <button class="nav-btn">Kit</button>
+                <button class="nav-btn">Help</button>
+            </nav>
+            <div class="topright">
+                <span class="status-dot"></span>
+                <span class="status-text">autosaved · 12s ago</span>
+                <button class="btn-share">Share</button>
             </div>
         </header>
 
-        <!-- Content Area -->
-        <div class="content-wrapper">
-            <!-- Editing Section -->
-            <div class="edit-section">
+        <!-- ── Transport Bar ──────────────────────── -->
+        <div class="transport">
+            <div class="transport-controls">
+                <button class="btn-play" id="playBtn" title="Play / Pause">&#9654;</button>
+                <button class="btn-icon" title="Record">
+                    <svg viewBox="0 0 16 16" width="12" height="12">
+                        <circle cx="8" cy="8" r="5" fill="oklch(0.7 0.18 25)"/>
+                    </svg>
+                </button>
+                <button class="btn-icon" title="Metronome">
+                    <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4">
+                        <path d="M5 13 L7 3 L9 3 L11 13 Z"/>
+                        <line x1="4" y1="13" x2="12" y2="13"/>
+                        <line x1="8" y1="8" x2="11" y2="5"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- hidden range — kept so grooveEditor.js can read/write it -->
+            <input type="range" id="bpmSlider" value="80" min="40" max="300" class="hidden">
+
+            <div class="transport-readout">
+                <div class="readout-time">
+                    <span class="mono" id="timeDisplay">0:00</span>
+                    <span class="readout-label">elapsed</span>
+                </div>
+                <div class="readout-bar">
+                    <span class="mono">1.1.1</span>
+                    <span class="readout-label">bar.beat.tick</span>
+                </div>
+            </div>
+
+            <div class="transport-fields">
+                <label class="field">
+                    <span class="field-label">BPM</span>
+                    <div class="field-control">
+                        <div class="bpm-stepper">
+                            <button onclick="var i=document.getElementById('bpmInput');i.value=Math.max(40,+i.value-1);i.dispatchEvent(new Event('input'))">&#8722;</button>
+                            <input type="number" id="bpmInput" value="80" min="40" max="300">
+                            <button onclick="var i=document.getElementById('bpmInput');i.value=Math.min(300,+i.value+1);i.dispatchEvent(new Event('input'))">+</button>
+                        </div>
+                    </div>
+                </label>
+
+                <label class="field">
+                    <span class="field-label">Time</span>
+                    <div class="field-control">
+                        <select id="timeSignature">
+                            <option value="2/4">2/4</option>
+                            <option value="3/4">3/4</option>
+                            <option value="4/4" selected>4/4</option>
+                            <option value="5/4">5/4</option>
+                            <option value="6/8">6/8</option>
+                        </select>
+                    </div>
+                </label>
+
+                <label class="field">
+                    <span class="field-label">Division</span>
+                    <div class="field-control">
+                        <select id="division">
+                            <option value="8">1/8 Notes</option>
+                            <option value="16" selected>1/16 Notes</option>
+                            <option value="32">1/32 Notes</option>
+                        </select>
+                    </div>
+                </label>
+
+                <label class="field">
+                    <span class="field-label">Swing</span>
+                    <div class="field-control swing-row">
+                        <input type="range" id="swingSlider" min="0" max="60" value="0"
+                               oninput="document.getElementById('swingDisplay').textContent=this.value+'%'">
+                        <span class="mono swing-val" id="swingDisplay">0%</span>
+                    </div>
+                </label>
+            </div>
+        </div>
+
+        <!-- ── Workspace ───────────────────────────── -->
+        <div class="workspace">
+
+            <!-- Main editing area -->
+            <main class="main">
+
+                <!-- Notation View (abc2svg rendered output) -->
                 <div class="groove-info">
                     <div id="notationView" class="notation-view"></div>
                 </div>
 
-                <!-- Note Type Toolbar -->
+                <!-- Pattern tabs -->
+                <div id="patternTabs" class="pattern-tabs-bar"></div>
+
+                <!-- Note Type Toolbar (directly above grid) -->
                 <div class="note-type-toolbar" id="noteTypeToolbar">
                     <span class="note-type-label">Draw:</span>
                     <button class="note-type-btn is-active" data-type="normal">Normal</button>
@@ -44,91 +154,57 @@
                     <button class="note-type-btn" data-type="flam">Flam</button>
                 </div>
 
-                <!-- Sheet Music Display -->
+                <!-- Sheet Music / Pattern Grid -->
                 <div class="sheet-music-container">
                     <svg id="sheetMusic" class="sheet-music" width="800" height="400" preserveAspectRatio="xMinYMin meet"></svg>
                 </div>
 
-            </div>
+            </main>
 
-            <!-- Playback Controls -->
-            <aside class="playback-controls">
-                <button id="playBtn" class="play-btn" title="Play/Pause">▶</button>
-                <div id="timeDisplay" class="time-display">0:00</div>
-
-                <div class="control-group">
-                    <label>BPM</label>
-                    <input type="number" id="bpmInput" value="80" min="40" max="300">
-                    <input type="range" id="bpmSlider" value="80" min="40" max="300">
+            <!-- Inspector / Right Panel -->
+            <aside class="inspector">
+                <div class="insp-section">
+                    <h3>Groove</h3>
+                    <label class="field">
+                        <span class="field-label">Author</span>
+                        <div class="field-control">
+                            <input type="text" id="authorInput" placeholder="Your name">
+                        </div>
+                    </label>
+                    <label class="field">
+                        <span class="field-label">Comment</span>
+                        <div class="field-control">
+                            <input type="text" id="commentInput" placeholder="Add a comment">
+                        </div>
+                    </label>
                 </div>
 
-                <div class="control-group">
-                    <label>Time Signature</label>
-                    <select id="timeSignature">
-                        <option value="2/4">2/4</option>
-                        <option value="3/4">3/4</option>
-                        <option value="4/4" selected>4/4</option>
-                        <option value="5/4">5/4</option>
-                        <option value="6/8">6/8</option>
-                    </select>
-                </div>
-
-                <div class="control-group">
-                    <label>Division</label>
-                    <select id="division">
-                        <option value="8">1/8 Notes</option>
-                        <option value="16" selected>1/16 Notes</option>
-                        <option value="32">1/32 Notes</option>
-                    </select>
-                </div>
-
-                <div class="control-group">
-                    <label>Title</label>
-                    <input type="text" id="titleInput" placeholder="Enter groove title">
-                </div>
-
-                <div class="control-group">
-                    <label>Author</label>
-                    <input type="text" id="authorInput" placeholder="Enter author name">
-                </div>
-
-                <div class="control-group">
-                    <label>Comment</label>
-                    <input type="text" id="commentInput" placeholder="Add a comment">
-                </div>
-
-                <div class="action-buttons">
-                    <button id="saveFileBtn" class="btn btn-secondary">
-                        <span class="icon">💾</span>
-                        SAVE
+                <div class="insp-actions">
+                    <button id="saveFileBtn" class="btn-primary">
+                        <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M3 3h7l3 3v7H3z"/><path d="M5 3v4h6V3"/><rect x="5" y="9" width="6" height="4"/>
+                        </svg>
+                        Save
                     </button>
-                    <button id="printBtn" class="btn btn-secondary">
-                        <span class="icon">🖨</span>
-                        PRINT
-                    </button>
-                    <button id="openFileBtn" class="btn btn-secondary">
-                        <span class="icon">📂</span>
-                        OPEN FILE
-                    </button>
-                    <button id="openTextBtn" class="btn btn-secondary">
-                        <span class="icon">📋</span>
-                        OPEN TEXT
-                    </button>
-                    <button id="clearBtn" class="btn btn-danger">Clear</button>
+                    <button id="openFileBtn" class="btn-ghost">Open</button>
+                    <button id="printBtn" class="btn-ghost">Print</button>
+                    <button id="openTextBtn" class="btn-ghost insp-full">Paste JSON</button>
+                    <button id="clearBtn" class="btn-danger insp-full">Clear</button>
                 </div>
             </aside>
+
         </div>
     </div>
 
-    <!-- Open Text Modal -->
+    <!-- ── Open Text Modal ─────────────────────────── -->
     <div id="openTextModal" class="open-text-modal hidden" role="dialog" aria-modal="true" aria-labelledby="openTextTitle">
         <div class="open-text-dialog">
             <h2 id="openTextTitle" class="open-text-title">Paste Groove Text</h2>
             <textarea id="openTextArea" class="open-text-area" placeholder="Paste saved groove JSON here…" spellcheck="false"></textarea>
             <p id="openTextError" class="open-text-error hidden"></p>
             <div class="open-text-actions">
-                <button id="openTextCancelBtn" class="btn">Cancel</button>
-                <button id="openTextLoadBtn" class="btn btn-primary">Load</button>
+                <button id="openTextCancelBtn" class="btn-ghost">Cancel</button>
+                <button id="openTextLoadBtn" class="btn-primary-sm">Load</button>
             </div>
         </div>
     </div>
@@ -144,7 +220,7 @@
     <script src="js/notationRenderer.js?v=20260502-4"></script>
     <script src="js/patternEditor.js?v=20260511-1"></script>
     <script src="js/grooveEditor.js?v=20260511-1"></script>
-    <script src="js/app.js?v=20260516-1"></script>
+    <script src="js/app.js?v=20260529-1"></script>
 
     <script>
         if ('serviceWorker' in navigator) {
