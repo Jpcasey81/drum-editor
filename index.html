@@ -44,44 +44,17 @@
                 <button class="nav-btn">Kit</button>
                 <button class="nav-btn">Help</button>
             </nav>
-            <div class="topright">
-                <span class="status-dot"></span>
-                <span class="status-text">autosaved · 12s ago</span>
-                <button class="btn-share">Share</button>
-            </div>
         </header>
 
         <!-- ── Transport Bar ──────────────────────── -->
         <div class="transport">
             <div class="transport-controls">
                 <button class="btn-play" id="playBtn" title="Play / Pause">&#9654;</button>
-                <button class="btn-icon" title="Record">
-                    <svg viewBox="0 0 16 16" width="12" height="12">
-                        <circle cx="8" cy="8" r="5" fill="oklch(0.7 0.18 25)"/>
-                    </svg>
-                </button>
-                <button class="btn-icon" title="Metronome">
-                    <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4">
-                        <path d="M5 13 L7 3 L9 3 L11 13 Z"/>
-                        <line x1="4" y1="13" x2="12" y2="13"/>
-                        <line x1="8" y1="8" x2="11" y2="5"/>
-                    </svg>
-                </button>
             </div>
 
             <!-- hidden range — kept so grooveEditor.js can read/write it -->
             <input type="range" id="bpmSlider" value="80" min="40" max="300" class="hidden">
 
-            <div class="transport-readout">
-                <div class="readout-time">
-                    <span class="mono" id="timeDisplay">0:00</span>
-                    <span class="readout-label">elapsed</span>
-                </div>
-                <div class="readout-bar">
-                    <span class="mono">1.1.1</span>
-                    <span class="readout-label">bar.beat.tick</span>
-                </div>
-            </div>
 
             <div class="transport-fields">
                 <label class="field">
@@ -118,15 +91,6 @@
                         </select>
                     </div>
                 </label>
-
-                <label class="field">
-                    <span class="field-label">Swing</span>
-                    <div class="field-control swing-row">
-                        <input type="range" id="swingSlider" min="0" max="60" value="0"
-                               oninput="document.getElementById('swingDisplay').textContent=this.value+'%'">
-                        <span class="mono swing-val" id="swingDisplay">0%</span>
-                    </div>
-                </label>
             </div>
         </div>
 
@@ -141,17 +105,17 @@
                     <div id="notationView" class="notation-view"></div>
                 </div>
 
-                <!-- Pattern tabs -->
-                <div id="patternTabs" class="pattern-tabs-bar"></div>
-
-                <!-- Note Type Toolbar (directly above grid) -->
-                <div class="note-type-toolbar" id="noteTypeToolbar">
-                    <span class="note-type-label">Draw:</span>
-                    <button class="note-type-btn is-active" data-type="normal">Normal</button>
-                    <button class="note-type-btn" data-type="accent">Accent</button>
-                    <button class="note-type-btn" data-type="ghost">Ghost</button>
-                    <button class="note-type-btn" data-type="rimclick">Rim Click</button>
-                    <button class="note-type-btn" data-type="flam">Flam</button>
+                <!-- Pattern tabs + Note Type Toolbar row -->
+                <div class="toolbar-row">
+                    <div id="patternTabs" class="pattern-tabs-bar"></div>
+                    <div class="note-type-toolbar" id="noteTypeToolbar">
+                        <span class="note-type-label">Draw:</span>
+                        <button class="note-type-btn is-active" data-type="normal">Normal</button>
+                        <button class="note-type-btn" data-type="accent">Accent</button>
+                        <button class="note-type-btn" data-type="ghost">Ghost</button>
+                        <button class="note-type-btn" data-type="rimclick">Rim Click</button>
+                        <button class="note-type-btn" data-type="flam">Flam</button>
+                    </div>
                 </div>
 
                 <!-- Sheet Music / Pattern Grid -->

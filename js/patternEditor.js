@@ -135,27 +135,6 @@ const GroovePatternEditor = {
         const patMeasures = (activePat && activePat.measures) || 1;
         const ns = 'http://www.w3.org/2000/svg';
 
-        // Label above each measure
-        for (let m = 0; m < patMeasures; m++) {
-            const startStep = m * stepsPerMeasure;
-            const endStep   = startStep + stepsPerMeasure - 1;
-            const x    = this.getCellX(startStep, gridStartX, cellWidth, cellGap, beatGap, stepsPerBeat);
-            const endX = this.getCellX(endStep,   gridStartX, cellWidth, cellGap, beatGap, stepsPerBeat) + cellWidth;
-
-            const label = document.createElementNS(ns, 'text');
-            label.setAttribute('x', String(x + (endX - x) / 2));
-            label.setAttribute('y', '15');
-            label.setAttribute('text-anchor', 'middle');
-            label.setAttribute('dominant-baseline', 'central');
-            label.setAttribute('font-size', '11');
-            label.setAttribute('fill', '#a09080');
-            label.setAttribute('pointer-events', 'none');
-            label.textContent = m === 0
-                ? (activePat ? activePat.name : (groove.measureText[0] || 'M1'))
-                : 'bar 2';
-            wrapper.appendChild(label);
-        }
-
         // + or − button at the right edge of the grid
         const lastStep = patMeasures * stepsPerMeasure - 1;
         const lastCellRight = this.getCellX(lastStep, gridStartX, cellWidth, cellGap, beatGap, stepsPerBeat) + cellWidth;
