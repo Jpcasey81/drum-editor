@@ -347,9 +347,12 @@ const GrooveEditor = {
 
     // Print groove
     print: function() {
-        const hasAnyNotes = DrumUtils.drumLaneKeys.some((drumKey) => {
-            return DrumUtils.grooveToArray(this.currentGroove[drumKey]).some((hit) => hit && hit !== '-');
-        });
+        const patterns = GroovePatternEditor.patterns;
+        const hasAnyNotes = patterns.some((pat) =>
+            DrumUtils.drumLaneKeys.some((key) =>
+                DrumUtils.grooveToArray(pat[key]).some((hit) => hit && hit !== '-')
+            )
+        );
 
         if (!hasAnyNotes) {
             alert('Please create a groove before printing');
@@ -361,7 +364,19 @@ const GrooveEditor = {
             return;
         }
 
-        const abcSource = DrumNotationRenderer.buildABC(this.currentGroove);
+        const g = this.currentGroove;
+        const patternSources = patterns.map((pat) => {
+            const measures = pat.measures || 1;
+            const patGroove = Object.assign({}, g, {
+                crash: pat.crash, hihat: pat.hihat, ride: pat.ride,
+                hitom: pat.hitom, midtom: pat.midtom, snare: pat.snare,
+                lowtom: pat.lowtom, kick: pat.kick,
+                measures,
+                measureText: []
+            });
+            return { name: pat.name, abcSource: DrumNotationRenderer.buildABC(patGroove, { showTempo: false, staffWidth: 900, pageWidth: 940 }) };
+        });
+
         const printWindow = window.open('', '_blank', 'width=1100,height=850');
         if (!printWindow) {
             alert('Unable to open the print preview window. Please allow pop-ups for this site.');
@@ -369,13 +384,13 @@ const GrooveEditor = {
         }
 
         printWindow.document.open();
-        printWindow.document.write(this.buildPrintDocument(abcSource));
+        printWindow.document.write(this.buildPrintDocument(patternSources));
         printWindow.document.close();
         printWindow.focus();
     },
 
-    // Create a print-friendly document that renders the ABC staff notation in the print window
-    buildPrintDocument: function(abcSource) {
+    // Create a print-friendly document that renders all patterns, one per row
+    buildPrintDocument: function(patternSources) {
         const groove = this.currentGroove;
         const title = groove.title || 'Untitled Groove';
         const author = groove.author ? `<div class="print-meta-line">By ${this.escapeHTML(groove.author)}</div>` : '';
@@ -383,12 +398,18 @@ const GrooveEditor = {
         const settings = [
             `${groove.timeSignature}`,
             `1/${groove.division} notes`,
-            `${groove.tempo} BPM`,
-            `${groove.measures} measure${groove.measures === 1 ? '' : 's'}`
+            `${groove.tempo} BPM`
         ].join(' • ');
         const abc2svgScriptUrl = new URL('lib/abc2svg/abc2svg-1.js', window.location.href).href;
         const percScriptUrl = new URL('lib/abc2svg/perc-1.js', window.location.href).href;
-        const escapedAbcSource = JSON.stringify(abcSource);
+        const escapedPatternSources = JSON.stringify(patternSources);
+
+        const patternSections = patternSources.map((pat, i) =>
+            `        <section class="pattern-block">
+            <div class="pattern-label">${this.escapeHTML(pat.name)}</div>
+            <div id="notation-${i}" class="notation-wrapper"></div>
+        </section>`
+        ).join('\n');
 
         return `<!DOCTYPE html>
 <html lang="en">
@@ -398,7 +419,7 @@ const GrooveEditor = {
     <title>${this.escapeHTML(title)} - Print</title>
     <style>
         @page {
-            size: auto;
+            size: landscape;
             margin: 0.5in;
         }
 
@@ -420,7 +441,7 @@ const GrooveEditor = {
         }
 
         .print-header {
-            margin-bottom: 0.12in;
+            margin-bottom: 0.2in;
             border-bottom: 1px solid #d1d5db;
             padding-bottom: 0.1in;
         }
@@ -447,16 +468,28 @@ const GrooveEditor = {
             color: #1f2937;
         }
 
+        .pattern-block {
+            margin-bottom: 0.18in;
+            break-inside: avoid;
+        }
+
+        .pattern-label {
+            font-size: 10pt;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #6b7280;
+            margin-bottom: 0.04in;
+        }
+
         .notation-wrapper {
             width: 100%;
             overflow: visible;
-            min-height: 3in;
         }
 
         .notation-wrapper svg {
             display: block;
-            width: 100%;
-            height: auto;
+            max-width: 100%;
         }
 
         .notation-wrapper pre,
@@ -486,50 +519,58 @@ const GrooveEditor = {
             <div class="print-settings">${this.escapeHTML(settings)}</div>
             ${comment}
         </header>
-        <section id="printNotation" class="notation-wrapper"></section>
+${patternSections}
     </main>
     <script>
         (function () {
-            var abcSource = ${escapedAbcSource};
-            var container = document.getElementById('printNotation');
-            var output = '';
-            var errorText = '';
+            var patternSources = ${escapedPatternSources};
 
-            function renderNotation() {
+            function renderAll() {
                 if (typeof abc2svg === 'undefined' || !abc2svg.Abc) {
-                    container.innerHTML = '<pre class="print-error">Unable to load abc2svg for printing.</pre>';
+                    document.querySelector('.print-sheet').innerHTML += '<pre class="print-error">Unable to load abc2svg for printing.</pre>';
                     return;
                 }
 
                 try {
-                    var abc = new abc2svg.Abc({
-                        errmsg: function (msg) {
-                            errorText += msg + '\\n';
-                        },
-                        img_out: function (str) {
-                            output += str;
-                        }
-                    });
+                    patternSources.forEach(function (pat, i) {
+                        var container = document.getElementById('notation-' + i);
+                        var output = '';
+                        var errorText = '';
 
-                    abc.tosvg('print-notation', abcSource);
+                        var abc = new abc2svg.Abc({
+                            errmsg: function (msg) { errorText += msg + '\\n'; },
+                            img_out: function (str) { output += str; }
+                        });
+
+                        abc.tosvg('notation-' + i, pat.abcSource);
+
+                        // abc2svg reuses id="stdef" for the staff-line path in every SVG it
+                        // produces. When multiple SVGs share the same HTML document, the browser
+                        // resolves xlink:href="#stdef" against the FIRST definition it finds,
+                        // so every pattern after the first inherits pattern 0's (shorter) staff
+                        // lines. Make each stdef unique to prevent this collision.
+                        output = output
+                            .replace(/id="stdef"/g, 'id="stdef-' + i + '"')
+                            .replace(/href="#stdef"/g, 'href="#stdef-' + i + '"');
+
+                        container.innerHTML = errorText
+                            ? '<pre class="print-error">' + errorText.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</pre>' + output
+                            : output;
+                    });
 
                     if (typeof abc2svg.abc_end === 'function') {
                         abc2svg.abc_end();
                     }
 
-                    container.innerHTML = errorText
-                        ? '<pre class="print-error">' + errorText.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</pre>' + output
-                        : output;
-
                     window.setTimeout(function () {
                         window.print();
                     }, 150);
                 } catch (error) {
-                    container.innerHTML = '<pre class="print-error">' + String(error.message || error).replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</pre>';
+                    document.querySelector('.print-sheet').innerHTML += '<pre class="print-error">' + String(error.message || error).replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</pre>';
                 }
             }
 
-            window.addEventListener('load', renderNotation);
+            window.addEventListener('load', renderAll);
             window.addEventListener('afterprint', function () {
                 window.close();
             });

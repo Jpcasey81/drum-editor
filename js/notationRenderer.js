@@ -139,16 +139,18 @@ const DrumNotationRenderer = {
             fullWidth: staffWidth,
             singleWidth: singleMeasureStaffWidth
         });
+        const headerStaffWidth = measureStrings.length === 1 ? singleMeasureStaffWidth : staffWidth;
 
         return [
             'X:1',
             `M:${timeSignature}`,
             `L:1/${division}`,
-            `Q:"${groove.tempo || 80} BPM"`,
+            options.showTempo !== false ? `Q:"${groove.tempo || 80} BPM"` : null,
             '%%printmargin 0',
             '%%leftmargin 12',
             '%%rightmargin 12',
             `%%pagewidth ${pageWidth}`,
+            `%%staffwidth ${headerStaffWidth}`,
             '%%stretchlast 1',
             '%%musicspace 12',
             '%%staffsep 70',
