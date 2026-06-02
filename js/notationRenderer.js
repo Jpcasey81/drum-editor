@@ -137,8 +137,7 @@ const DrumNotationRenderer = {
             });
         const body = this.buildSystems(measureStrings, 2, {
             fullWidth: staffWidth,
-            singleWidth: singleMeasureStaffWidth,
-            pageWidth: pageWidth
+            singleWidth: singleMeasureStaffWidth
         });
         const headerStaffWidth = measureStrings.length === 1 ? singleMeasureStaffWidth : staffWidth;
 
@@ -197,8 +196,7 @@ const DrumNotationRenderer = {
         for (let index = 0; index < measureStrings.length; index += measuresPerLine) {
             const systemMeasures = measureStrings.slice(index, index + measuresPerLine);
             const systemWidth = systemMeasures.length === 1 ? widths.singleWidth : widths.fullWidth;
-            const leftMargin = Math.round((widths.pageWidth - systemWidth) / 2);
-            systems.push(`%%staffwidth ${systemWidth}\n%%leftmargin ${leftMargin}\n| ` + systemMeasures.join(' | ') + ' |');
+            systems.push(`%%staffwidth ${systemWidth}\n| ` + systemMeasures.join(' | ') + ' |');
         }
 
         return systems.join('\n');
