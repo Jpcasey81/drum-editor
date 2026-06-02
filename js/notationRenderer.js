@@ -98,8 +98,8 @@ const DrumNotationRenderer = {
         const oneLineHeight = parseFloat(svgs[0].getAttribute('height')) || 0;
         if (oneLineHeight <= 0) return;
 
-        const padding = 20; // 10px top + 10px bottom from .notation-view padding
-        container.style.height = (oneLineHeight * 2 + padding) + 'px';
+        const padding = 16; // 8px top + 8px bottom from .notation-view padding
+        container.style.height = (oneLineHeight + padding) + 'px';
         container.dataset.heightLocked = '1';
     },
 
@@ -137,7 +137,8 @@ const DrumNotationRenderer = {
             });
         const body = this.buildSystems(measureStrings, 2, {
             fullWidth: staffWidth,
-            singleWidth: singleMeasureStaffWidth
+            singleWidth: singleMeasureStaffWidth,
+            pageWidth: pageWidth
         });
         const headerStaffWidth = measureStrings.length === 1 ? singleMeasureStaffWidth : staffWidth;
 
@@ -196,7 +197,8 @@ const DrumNotationRenderer = {
         for (let index = 0; index < measureStrings.length; index += measuresPerLine) {
             const systemMeasures = measureStrings.slice(index, index + measuresPerLine);
             const systemWidth = systemMeasures.length === 1 ? widths.singleWidth : widths.fullWidth;
-            systems.push(`%%staffwidth ${systemWidth}\n| ` + systemMeasures.join(' | ') + ' |');
+            const leftMargin = Math.round((widths.pageWidth - systemWidth) / 2);
+            systems.push(`%%staffwidth ${systemWidth}\n%%leftmargin ${leftMargin}\n| ` + systemMeasures.join(' | ') + ' |');
         }
 
         return systems.join('\n');
