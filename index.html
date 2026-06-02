@@ -215,6 +215,11 @@
 
             btn.addEventListener('click', function () {
                 setCollapsed(!inspector.classList.contains('is-collapsed'));
+                // Re-render after the 0.2s CSS transition finishes so the grid
+                // and notation measure their new container width correctly.
+                setTimeout(function () {
+                    if (typeof GrooveEditor !== 'undefined') GrooveEditor.render();
+                }, 220);
             });
 
             // Restore saved state
