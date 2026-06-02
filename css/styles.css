@@ -689,8 +689,6 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); }
 @media (orientation: landscape) and (max-height: 900px) and (min-width: 768px) {
   .topbar { height: 40px; }
   .app    { grid-template-rows: 40px 56px 1fr; }
-  .groove-info { max-height: 110px; }  /* even tighter on landscape */
-
   .main { padding: 8px 12px; gap: 8px; }
   .insp-topbar { padding: 5px 7px; }
   .insp-section { padding: 10px 12px; gap: 8px; }
