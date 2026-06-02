@@ -208,7 +208,7 @@ const GroovePatternEditor = {
         const minCellSize = isTabletPortrait ? 12 : 8;
         const trackHeight = containerHeight > 0
             ? Math.max(minCellSize + 2, Math.floor(
-                (containerHeight - margin - 22 - trackGap * (numLanes - 1)) / numLanes
+                (containerHeight - margin - 4 - trackGap * (numLanes - 1)) / numLanes
               ))
             : (isTabletPortrait ? 40 : 26);
         const cellWidth = containerWidth > 0
@@ -385,7 +385,7 @@ const GroovePatternEditor = {
         labelMask.setAttribute('x', '0');
         labelMask.setAttribute('y', '0');
         labelMask.setAttribute('width', String(gridStartX));
-        labelMask.setAttribute('height', String(totalHeight + 20));
+        labelMask.setAttribute('height', String(totalHeight + 4));
         labelMask.setAttribute('fill', '#1e1a12');
         labelsOverlay.insertBefore(labelMask, labelsOverlay.firstChild);
         wrapper.appendChild(labelsOverlay);
@@ -393,9 +393,9 @@ const GroovePatternEditor = {
         const totalWidth = totalSteps > 0
             ? this.getCellX(totalSteps - 1, gridStartX, cellWidth, cellGap, beatGap, stepsPerBeat) + cellWidth + margin
             : gridStartX + margin;
-        document.getElementById('sheetMusic').setAttribute('viewBox', `0 0 ${totalWidth} ${totalHeight + 20}`);
+        document.getElementById('sheetMusic').setAttribute('viewBox', `0 0 ${totalWidth} ${totalHeight + 4}`);
         document.getElementById('sheetMusic').setAttribute('width', totalWidth);
-        document.getElementById('sheetMusic').setAttribute('height', totalHeight + 22);
+        document.getElementById('sheetMusic').setAttribute('height', totalHeight + 4);
     },
 
     // Determine if a mousedown/touchstart should start an erase drag
