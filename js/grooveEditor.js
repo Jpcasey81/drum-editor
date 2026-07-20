@@ -397,7 +397,7 @@ const GrooveEditor = {
         const comment = groove.comment ? `<div class="print-comment">${this.escapeHTML(groove.comment)}</div>` : '';
         const settings = [
             `${groove.timeSignature}`,
-            `1/${groove.division} notes`,
+            DrumUtils.getDivisionMeta(groove.division).label,
             `${groove.tempo} BPM`
         ].join(' • ');
         const abc2svgScriptUrl = new URL('lib/abc2svg/abc2svg-1.js', window.location.href).href;

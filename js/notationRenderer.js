@@ -119,6 +119,7 @@ const DrumNotationRenderer = {
     buildABC: function(groove, options = {}) {
         const timeSignature = groove.timeSignature || '4/4';
         const division = groove.division || 16;
+        const divisionMeta = DrumUtils.getDivisionMeta(division);
         const measures = groove.measures || 1;
         const staffWidth = options.staffWidth || 1100;
         const pageWidth = options.pageWidth || (staffWidth + 40);
@@ -126,7 +127,7 @@ const DrumNotationRenderer = {
         const stepsPerMeasure = DrumUtils.calculateStepsPerMeasure(timeSignature, division);
         const beatsPerMeasure = this.getNotationBeatCount(timeSignature);
         const stepsPerBeat = Math.max(1, Math.round(stepsPerMeasure / beatsPerMeasure));
-        const measureStrings = this.buildStepTokens(groove, measures, stepsPerMeasure, stepsPerBeat)
+        const measureStrings = this.buildStepTokens(groove, measures, stepsPerMeasure, stepsPerBeat, divisionMeta.isTriplet)
             .map((measureTokens, measureIndex) => {
                 const measureString = this.groupMeasureTokens(measureTokens);
                 const measureText = groove.measureText && groove.measureText[measureIndex]
@@ -144,7 +145,7 @@ const DrumNotationRenderer = {
         return [
             'X:1',
             `M:${timeSignature}`,
-            `L:1/${division}`,
+            `L:1/${divisionMeta.straightDenominator}`,
             options.showTempo !== false ? `Q:"${groove.tempo || 80} BPM"` : null,
             '%%printmargin 0',
             '%%leftmargin 12',
@@ -183,7 +184,10 @@ const DrumNotationRenderer = {
             '%%map MIDIdrum C print=A heads=ghost_head',
             '%%map MIDIdrum f print=c heads=x_head',
             '%%map MIDIdrum D print=E heads=x_head',
-            'I:stemdir up',
+            // Forcing stems up combines with %%beamslope 0 to divide-by-zero (NaN) in abc2svg's
+            // beam-slope calc whenever a tuplet beam mixes rests with notes, which triplet
+            // grooves do constantly. Skip the forced stem direction for triplet divisions only.
+            divisionMeta.isTriplet ? null : 'I:stemdir up',
             'K:C clef=perc',
             body
         ].filter(Boolean).join('\n');
@@ -227,7 +231,7 @@ const DrumNotationRenderer = {
     },
 
     // Convert each rhythmic step into ABC chords/rests
-    buildStepTokens: function(groove, measures, stepsPerMeasure, stepsPerBeat) {
+    buildStepTokens: function(groove, measures, stepsPerMeasure, stepsPerBeat, isTriplet) {
         const laneKeys = DrumUtils.drumLaneKeys;
 
         return Array.from({ length: measures }, (_, measureIndex) => {
@@ -243,22 +247,60 @@ const DrumNotationRenderer = {
                     return accumulator;
                 }, {});
 
-                const displayStepFactor = this.getBeatDisplayStepFactor(beatHits, stepsPerBeat);
-                const beatTokens = [];
-
-                for (let stepOffset = 0; stepOffset < stepsPerBeat; stepOffset += displayStepFactor) {
-                    const activeHits = laneKeys
-                        .map((laneKey) => ({ laneKey, hit: beatHits[laneKey][stepOffset] }))
-                        .filter(({ hit }) => hit && hit !== '-');
-
-                    beatTokens.push(this.buildStepToken(activeHits, displayStepFactor));
-                }
-
-                beatGroups.push(beatTokens);
+                beatGroups.push(isTriplet
+                    ? this.buildTripletBeatTokens(beatHits, laneKeys, stepsPerBeat)
+                    : this.buildStraightBeatTokens(beatHits, laneKeys, stepsPerBeat));
             }
 
             return beatGroups;
         });
+    },
+
+    // Build tokens for one beat using the coarsest power-of-2 grouping that still matches
+    // every note onset (straight, non-triplet divisions)
+    buildStraightBeatTokens: function(beatHits, laneKeys, stepsPerBeat) {
+        const displayStepFactor = this.getBeatDisplayStepFactor(beatHits, stepsPerBeat);
+        const beatTokens = [];
+
+        for (let stepOffset = 0; stepOffset < stepsPerBeat; stepOffset += displayStepFactor) {
+            const activeHits = laneKeys
+                .map((laneKey) => ({ laneKey, hit: beatHits[laneKey][stepOffset] }))
+                .filter(({ hit }) => hit && hit !== '-');
+
+            beatTokens.push(this.buildStepToken(activeHits, displayStepFactor));
+        }
+
+        return beatTokens;
+    },
+
+    // Build tokens for one beat of a triplet division, grouping every 3 steps into an ABC
+    // tuplet (e.g. "(3abc"). A fully empty group collapses to a plain rest spanning the same
+    // duration as the tuplet (2 straight units), since ABC only needs the bracket when notes
+    // actually need distinguishing.
+    buildTripletBeatTokens: function(beatHits, laneKeys, stepsPerBeat) {
+        const beatTokens = [];
+
+        for (let groupStart = 0; groupStart < stepsPerBeat; groupStart += 3) {
+            const groupActiveHits = [0, 1, 2].map((offset) =>
+                laneKeys
+                    .map((laneKey) => ({ laneKey, hit: beatHits[laneKey][groupStart + offset] }))
+                    .filter(({ hit }) => hit && hit !== '-')
+            );
+
+            beatTokens.push(this.buildTripletGroupToken(groupActiveHits));
+        }
+
+        return beatTokens;
+    },
+
+    // Render one 3-note tuplet group, or a plain rest of equivalent duration if empty
+    buildTripletGroupToken: function(groupActiveHits) {
+        const hasAnyHit = groupActiveHits.some((activeHits) => activeHits.length > 0);
+        if (!hasAnyHit) {
+            return this.withDuration('z', 2);
+        }
+
+        return '(3' + groupActiveHits.map((activeHits) => this.buildStepToken(activeHits, 1)).join('');
     },
 
     // Pick the coarsest displayed subdivision that still matches all note onsets in a beat

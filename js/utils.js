@@ -5,6 +5,30 @@
 const DrumUtils = {
     drumLaneKeys: ['crash', 'hihat', 'ride', 'hitom', 'midtom', 'snare', 'lowtom', 'kick'],
 
+    // Known division values. Triplet divisions (e.g. 12 = 1/8 triplets) pack 3 steps into the
+    // space normally taken by 2 straight subdivisions, so they carry a straightDenominator
+    // (the power-of-2 ABC unit note length they must render with, since ABC's L: field
+    // rejects non-power-of-2 denominators) and are grouped in tuplet brackets during notation.
+    divisionMeta: {
+        8:  { label: '1/8 Notes',       isTriplet: false, straightDenominator: 8 },
+        16: { label: '1/16 Notes',      isTriplet: false, straightDenominator: 16 },
+        32: { label: '1/32 Notes',      isTriplet: false, straightDenominator: 32 },
+        12: { label: '1/8 Triplets',    isTriplet: true,  straightDenominator: 8 },
+        24: { label: '1/16 Triplets',   isTriplet: true,  straightDenominator: 16 }
+    },
+
+    /**
+     * Look up display/notation metadata for a division value, with a sane fallback
+     * for any division not in the table.
+     */
+    getDivisionMeta: function(division) {
+        return this.divisionMeta[division] || {
+            label: `1/${division} Notes`,
+            isTriplet: false,
+            straightDenominator: division
+        };
+    },
+
     /**
      * Format time in seconds to MM:SS format
      */
