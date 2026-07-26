@@ -327,23 +327,19 @@ const DrumUtils = {
      */
     downloadFile: function(filename, content, mimeType = 'text/plain') {
         // iOS/iPadOS Safari doesn't honor the `download` attribute on data:
-        // URIs (it just navigates to the URI instead of saving), so send the
-        // file to the native share sheet there instead (e.g. "Save to Files").
-        if (navigator.canShare) {
-            const file = new File([content], filename, { type: mimeType });
-            if (navigator.canShare({ files: [file] })) {
-                navigator.share({ files: [file] }).catch(err => console.log('Share error:', err));
-                return;
-            }
-        }
+        // URIs (it just navigates to the URI instead of saving), but it does
+        // honor it on blob: URIs, so use a Blob object URL instead.
+        const blob = new Blob([content], { type: mimeType });
+        const url = URL.createObjectURL(blob);
 
         const element = document.createElement('a');
-        element.setAttribute('href', 'data:' + mimeType + ';charset=utf-8,' + encodeURIComponent(content));
+        element.setAttribute('href', url);
         element.setAttribute('download', filename);
         element.style.display = 'none';
         document.body.appendChild(element);
         element.click();
         document.body.removeChild(element);
+        URL.revokeObjectURL(url);
     }
 };
 
