@@ -189,13 +189,18 @@ const GrooveEditor = {
         const bpmSlider = document.getElementById('bpmSlider');
 
         if (bpmInput && bpmSlider) {
-            bpmInput.addEventListener('change', (e) => {
-                const value = Math.max(40, Math.min(300, parseInt(e.target.value) || 80));
-                this.currentGroove.tempo = value;
-                bpmSlider.value = value;
-                bpmInput.value = value;
-                this.render();
-                this.updateURL();
+            // Listen on 'input' (fired by the +/- stepper buttons and while typing)
+            // as well as 'change' (fired on blur/enter), so the stepper buttons
+            // actually update currentGroove.tempo instead of just the displayed value.
+            ['input', 'change'].forEach((eventName) => {
+                bpmInput.addEventListener(eventName, (e) => {
+                    const value = Math.max(40, Math.min(300, parseInt(e.target.value) || 80));
+                    this.currentGroove.tempo = value;
+                    bpmSlider.value = value;
+                    bpmInput.value = value;
+                    this.render();
+                    this.updateURL();
+                });
             });
 
             bpmSlider.addEventListener('input', (e) => {
@@ -601,14 +606,14 @@ ${patternSections}
             .replace(/[^a-z0-9\-_ ]/gi, '')
             .trim()
             .replace(/\s+/g, '-') || 'untitled-groove';
-        DrumUtils.downloadFile(safeName + '-groove.txt', json, 'text/plain');
+        DrumUtils.downloadFile(safeName + '-groove.json', json, 'application/json');
     },
 
     // Open a .drumgroove file and load it into the editor
     openFromFile: function() {
         const input = document.createElement('input');
         input.type = 'file';
-        input.accept = '.txt,.drumgroove,application/json';
+        input.accept = '.txt,.json,.drumgroove,application/json';
         input.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file) return;
